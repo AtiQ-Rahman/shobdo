@@ -13,11 +13,20 @@
   </header>
   <section class="actions">
     <button id="openTab" class="btn primary" hidden>Open this PDF in the reader</button>
+    <label id="nameRow" class="name-row" hidden><span>Name</span>
+      <input id="saveName" maxlength="200" placeholder="A short name for this page" title="Enter to save. Leave empty to use the page's own title."></label>
+    <button id="savePage" class="btn primary" hidden title="Keeps the text of this page in Shobdo, so you can read, highlight and revise it later, even offline">Save this page to read later</button>
+    <span id="savedRow" class="saved-row" hidden><button id="openSaved" class="btn primary">Open saved copy</button><button id="resave" class="btn" title="Save the page's current text again. Your highlights and notes stay.">Save again</button></span>
+    <p id="saveMsg" class="save-msg" role="status"></p>
     <button id="openFile" class="btn">Open a PDF from your computer</button>
   </section>
   <section>
     <div class="sec-head"><span>Recent PDFs</span><a id="all" href="library.html" target="_blank">See all</a></div>
     <ul id="recent"></ul>
+  </section>
+  <section id="pagesSec" hidden>
+    <div class="sec-head"><span>Saved pages</span><a href="library.html#pages" target="_blank">See all</a></div>
+    <ul id="pages"></ul>
   </section>
   <section class="settings">
     <label class="switch">Open .pdf links in the reader <input id="autoOpen" type="checkbox"></label>
@@ -26,6 +35,7 @@
   </section>
   <footer>
     <a href="library.html#words" target="_blank">My words</a>
+    <a href="library.html#revise" target="_blank">Revise</a>
     <a href="library.html#time" target="_blank">Reading time</a>
     <a href="library.html#backup" target="_blank">Backup</a>
     <a href="library.html#settings" target="_blank">Settings</a>

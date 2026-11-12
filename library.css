@@ -118,3 +118,19 @@ kbd { font: 0.786rem/1 system-ui, sans-serif; border: 1px solid currentColor; bo
 .rv-done .bn { color: var(--green); font-size: calc(1.143rem * var(--wf, 1)); }
 .rv-done .acts { display: flex; gap: 8px; flex-wrap: wrap; }
 [hidden] { display: none !important; }
+
+/* ---------- Saved pages ---------- */
+.intro { max-width: 70ch; margin: 0 0 12px; font-size: 0.929rem; }
+.card .ex { font-family: Georgia, serif; font-size: 0.929rem; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card .acts a.btn { text-decoration: none; color: inherit; }
+.card .tag { display: inline-block; margin-right: 6px; font-size: 0.714rem; font-weight: 700; color: var(--green); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; vertical-align: 2px; }
+.src-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.src-row select { max-width: 100%; min-width: 0; flex: 1 1 14rem; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.src-row select:disabled { opacity: .5; }
+.rows .kind { font-size: 0.714rem; font-weight: 700; color: var(--muted); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-right: 6px; vertical-align: 1px; }
+
+/* fill-in-the-blank cards */
+.rv-q .cloze { font-size: calc(1.286rem * var(--wf, 1)); color: var(--ink); line-height: 1.6; }
+.blank { display: inline-block; min-width: calc(var(--n, 5) * 0.55em); border-bottom: 2px solid var(--green); color: var(--green); font-weight: 700; text-align: left; line-height: 1.2; }
+.rv-q .hint { font-size: calc(0.929rem * var(--wf, 1)); }
+.rv-q .hintv { color: var(--green); font-size: calc(1.143rem * var(--wf, 1)); }

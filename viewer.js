@@ -2,6 +2,7 @@ import * as pdfjsLib from "./lib/pdf.min.mjs";
 import { initAnnotations } from "./annotations.js";
 import { buildAnnotatedPdf } from "./pdfexport.js";
 import { watchTextSize, renameDoc } from "./shared.js";
+import { initSidePanel } from "./sidepanel.js";
 watchTextSize();
 globalThis.pdfjsLib = pdfjsLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./lib/pdf.worker.min.mjs";
@@ -33,76 +34,11 @@ eventBus.on("pagechanging", (e) => { $("pageInput").value = e.pageNumber; rememb
 $("zoomIn").onclick = () => viewer.increaseScale();
 $("zoomOut").onclick = () => viewer.decreaseScale();
 $("pageInput").onchange = (e) => { viewer.currentPageNumber = Math.max(1, Math.min(+e.target.value || 1, viewer.pagesCount)); };
-let paneOpen = null;
-function openSide(pane) {
-  const close = !pane || paneOpen === pane;
-  paneOpen = close ? null : pane;
-  $("side").hidden = close;
-  document.body.classList.toggle("side-open", !close);
-  $("notesBtn").setAttribute("aria-pressed", String(paneOpen === "notes"));
-  $("wordsBtn").setAttribute("aria-pressed", String(paneOpen === "words"));
-  for (const t of document.querySelectorAll("#side [role=tab]")) t.setAttribute("aria-selected", String(t.dataset.pane === pane));
-  $("paneNotes").hidden = pane !== "notes";
-  $("paneWords").hidden = pane !== "words";
-  setTimeout(() => { if (viewer.currentScaleValue === "page-width") viewer.currentScaleValue = "page-width"; }, 0);
-}
-// Panel width (drag the left edge) and text size (A− / A+), remembered across PDFs.
-const SIDE_MIN = 260, FS_MIN = 12, FS_MAX = 24;
-let sideW = null, sideFs = 14; // sideW null = default width, which grows with the text size
-const sideMax = () => Math.max(SIDE_MIN, Math.round(innerWidth * 0.7));
-function applySide() {
-  if (sideW != null) sideW = Math.min(Math.max(SIDE_MIN, Math.round(sideW)), sideMax());
-  document.documentElement.style.setProperty("--side-w", sideW != null ? sideW + "px" : "20rem");
-  document.documentElement.style.setProperty("--side-scale", sideFs / 14); // 14 = same as the rest of the app
-  $("fontDown").disabled = sideFs <= FS_MIN;
-  $("fontUp").disabled = sideFs >= FS_MAX;
-  const h = $("sideResize");
-  h.setAttribute("aria-valuemin", SIDE_MIN); h.setAttribute("aria-valuemax", sideMax()); h.setAttribute("aria-valuenow", sideW ?? ($("side").offsetWidth || 320));
-}
 function refit() { if (viewer.currentScaleValue === "page-width") viewer.currentScaleValue = "page-width"; }
-function saveSide() { store.set(sideW != null ? { sideW, sideFs } : { sideFs }); }
-let hlAlpha = 0.4; // highlight strength, set in Settings
-function loadLook(r) {
-  if ("sideW" in r) sideW = r.sideW || null;
-  if ("sideFs" in r) sideFs = r.sideFs || 14;
-  if ("hlAlpha" in r) { hlAlpha = r.hlAlpha || 0.4; document.documentElement.style.setProperty("--hl-alpha", hlAlpha); }
-  applySide();
-}
-store.get(["sideW", "sideFs", "hlAlpha"]).then(loadLook);
-// Settings changed in the Library (or another reader tab): apply right away.
-chrome.storage.onChanged.addListener((c) => {
-  const r = {};
-  for (const k of ["sideW", "sideFs", "hlAlpha"]) if (k in c) r[k] = c[k].newValue;
-  if (Object.keys(r).length) { loadLook(r); if ("sideW" in r) refit(); }
-});
-applySide();
-$("fontDown").onclick = () => { sideFs = Math.max(FS_MIN, sideFs - 1); applySide(); saveSide(); };
-$("fontUp").onclick = () => { sideFs = Math.min(FS_MAX, sideFs + 1); applySide(); saveSide(); };
-$("sideResize").addEventListener("pointerdown", (e) => {
-  e.preventDefault();
-  const h = e.currentTarget;
-  h.setPointerCapture(e.pointerId);
-  h.classList.add("drag"); document.body.classList.add("resizing");
-  const move = (ev) => { sideW = innerWidth - ev.clientX; applySide(); };
-  const up = () => {
-    h.removeEventListener("pointermove", move); h.removeEventListener("pointerup", up); h.removeEventListener("pointercancel", up);
-    h.classList.remove("drag"); document.body.classList.remove("resizing");
-    saveSide(); refit();
-  };
-  h.addEventListener("pointermove", move); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
-});
-$("sideResize").addEventListener("keydown", (e) => {
-  const step = e.shiftKey ? 80 : 20;
-  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-  sideW = (sideW ?? $("side").offsetWidth) + (e.key === "ArrowLeft" ? step : -step);
-  e.preventDefault(); applySide(); saveSide(); refit();
-});
-addEventListener("resize", applySide);
-
-$("notesBtn").onclick = () => openSide("notes");
-$("wordsBtn").onclick = () => openSide("words");
-for (const t of document.querySelectorAll("#side [role=tab]")) t.onclick = () => openSide(t.dataset.pane);
-document.querySelector("#side .close").onclick = () => openSide(null);
+initSidePanel({ onLayout: refit }); // Words / Notes panel, its width and text size
+let hlAlpha = 0.4; // highlight strength, set in Settings; also used for "Download PDF with highlights"
+store.get("hlAlpha").then((r) => { hlAlpha = r.hlAlpha || 0.4; });
+chrome.storage.onChanged.addListener((c) => { if (c.hlAlpha) hlAlpha = c.hlAlpha.newValue || 0.4; });
 
 // ---------- rename (click the title) ----------
 function showName() {

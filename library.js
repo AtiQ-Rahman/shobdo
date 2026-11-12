@@ -1,4 +1,5 @@
 import { store, esc, dayKey, fmtTime, ago, docsFrom, openDoc, renameDoc, watchTextSize, TEXT_SIZES, DEFAULT_UI_FS } from "./shared.js";
+import { pagesFrom, pageKeys, pageId, openPage } from "./pages.js";
 watchTextSize();
 const $ = (id) => document.getElementById(id);
 
@@ -59,6 +60,65 @@ $("docList").onclick = async (e) => {
   }
 };
 
+// ---------- Saved pages ----------
+let pageList = [];
+let renamingPage = null; // key of the page whose name is being edited
+const textCache = new Map(); // id -> { saved, text }: the plain text of a saved page, for finding your words in it
+function pageText(p, all) {
+  const c = textCache.get(p.id);
+  if (c && c.saved === p.saved) return c.text;
+  const text = new DOMParser().parseFromString(all["ptext:" + p.id]?.html || "", "text/html").body.textContent;
+  textCache.set(p.id, { saved: p.saved, text });
+  return text;
+}
+function renderPages(all) {
+  const typing = $("pageList").querySelector("[data-namein]")?.value; // a re-render mid-edit keeps what's typed
+  if (all) pageList = pagesFrom(all).map((p) => ({ ...p, nWords: sources.find((x) => x.key === p.key)?.keys.length || 0 }));
+  $("pageCount").textContent = pageList.length ? `(${pageList.length})` : "";
+  $("pageList").innerHTML = pageList.length ? pageList.map((p, i) => `
+    <li class="card">
+      ${renamingPage === p.key
+        ? `<span class="rename"><input data-namein="${i}" value="${esc(p.title)}" maxlength="200" aria-label="New name for this page"><button class="btn primary" data-namesave="${i}">Save</button><button class="btn" data-namecancel>Cancel</button></span>`
+        : `<span class="t">${p.sel ? `<span class="tag">Selection</span>` : ""}${esc(p.title)} <button class="btn link ren" data-rename="${i}" title="Rename this page" aria-label="Rename ${esc(p.title)}">Rename</button></span>`}
+      ${p.name && renamingPage !== p.key ? `<span class="m orig">Original name: ${esc(p.original)}</span>` : ""}
+      ${p.excerpt ? `<span class="ex">${esc(p.excerpt)}</span>` : ""}
+      <span class="m">${esc(p.site || "")}${p.site ? " · " : ""}saved ${ago(p.saved)} · ${fmtTime(p.ms)} reading${p.highlights ? ` · ${p.highlights} highlight${p.highlights === 1 ? "" : "s"}` : ""}${p.hasNote ? " · has notes" : ""}${p.nWords ? ` · ${p.nWords} of your words` : ""}</span>
+      <div class="prog"><i style="width:${Math.round(100 * (p.pos || 0))}%"></i></div>
+      <span class="acts">
+        <button class="btn primary" data-open="${i}">${(p.pos || 0) > 0.02 ? "Continue reading" : "Read"}</button>
+        ${p.nWords ? `<button class="btn" data-rv="${i}" title="Revise your saved words that appear on this page">Revise words</button>` : ""}
+        <button class="btn danger" data-del="${i}" title="Delete the saved copy, with its highlights and notes">Remove</button>
+      </span>
+    </li>`).join("") : `<li class="empty">No saved pages yet.</li>`;
+  const inp = renamingPage && $("pageList").querySelector("[data-namein]");
+  if (inp) { if (typing !== undefined) inp.value = typing; inp.focus(); if (typing === undefined) inp.select(); }
+}
+async function savePageName(i) {
+  const inp = $("pageList").querySelector(`[data-namein="${i}"]`);
+  renamingPage = null;
+  await renameDoc(pageList[i].key, inp?.value); // the storage listener re-renders
+  renderPages();
+}
+$("pageList").onkeydown = (e) => {
+  const inp = e.target.closest("[data-namein]");
+  if (!inp) return;
+  if (e.key === "Enter") savePageName(+inp.dataset.namein);
+  if (e.key === "Escape") { renamingPage = null; renderPages(); }
+};
+$("pageList").onclick = async (e) => {
+  const at = (a) => { const b = e.target.closest(`[data-${a}]`); return b ? pageList[+b.dataset[a]] : null; };
+  const rn = e.target.closest("[data-rename]"), sv = e.target.closest("[data-namesave]");
+  if (rn) { renamingPage = pageList[+rn.dataset.rename].key; renderPages(); }
+  if (sv) savePageName(+sv.dataset.namesave);
+  if (e.target.closest("[data-namecancel]")) { renamingPage = null; renderPages(); }
+  if (at("open")) openPage(at("open").id);
+  if (at("rv")) reviseSource(at("rv").key);
+  const d = at("del");
+  if (d && confirm(`Remove “${d.title}”? The saved copy and its highlights and notes will be deleted. Your saved words stay.`)) {
+    await store.remove(pageKeys(d.id)); // the storage listener re-renders
+  }
+};
+
 // ---------- My words ----------
 let words = [];
 // Recall mode: meanings stay hidden until clicked, so you can test yourself first.
@@ -73,6 +133,7 @@ function loadWords(all) {
   words = Object.entries(all).filter(([k]) => k.startsWith("v:")).map(([k, v]) => ({ key: k, ...v })).sort((a, b) => b.t - a.t);
   rv = {};
   for (const w of words) if (all["r" + w.key]) rv[w.key] = all["r" + w.key];
+  sources = buildSources(all);
   renderReviseSetup();
   $("wordCount").textContent = words.length ? `(${words.length})` : "";
   renderWords();
@@ -145,9 +206,9 @@ function renderTime(all) {
   }).join("")}</div>
   <div class="days">${days.map((x, i) => `<span>${i === 13 ? "Today" : x.d.toLocaleDateString(undefined, { weekday: "narrow" })}</span>`).join("")}</div>`;
 
-  const per = docsFrom(all).filter((d) => d.ms > 0).sort((a, b) => b.ms - a.ms);
-  $("perDoc").innerHTML = per.length ? per.map((d) => `<li><span class="name">${esc(d.title)}</span><span class="v">${fmtTime(d.ms)}</span></li>`).join("")
-    : `<li class="muted">Time you spend reading PDFs in the reader is counted here.</li>`;
+  const per = [...docsFrom(all).map((d) => ({ ...d, kind: "PDF" })), ...pagesFrom(all).map((p) => ({ ...p, kind: "Page" }))].filter((d) => d.ms > 0).sort((a, b) => b.ms - a.ms);
+  $("perDoc").innerHTML = per.length ? per.map((d) => `<li><span class="name"><span class="kind">${d.kind}</span>${esc(d.title)}</span><span class="v">${fmtTime(d.ms)}</span></li>`).join("")
+    : `<li class="muted">Time you spend reading PDFs and saved pages is counted here.</li>`;
 }
 
 // ---------- Backup / restore ----------
@@ -158,7 +219,7 @@ function summarize(data) {
   const c = (p) => Object.keys(data).filter((k) => k.startsWith(p)).length;
   const hl = Object.entries(data).filter(([k]) => k.startsWith("ann:")).reduce((n, [, v]) => n + (v.items?.length || 0), 0);
   const pl = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-  return `${pl(c("v:"), "saved word", "saved words")}, ${pl(c("doc:"), "PDF", "PDFs")}, ${pl(hl, "highlight", "highlights")}, ${pl(c("day:"), "day", "days")} of reading time`;
+  return `${pl(c("v:"), "saved word", "saved words")}, ${pl(c("doc:"), "PDF", "PDFs")}, ${pl(c("page:"), "saved page", "saved pages")}, ${pl(hl, "highlight", "highlights")}, ${pl(c("day:"), "day", "days")} of reading time`;
 }
 function renderBackupSummary(all) {
   $("backupSummary").textContent = "Right now you have " + summarize(all) + ".";
@@ -206,6 +267,10 @@ function mergeValue(k, mine, theirs) {
   if (k.startsWith("doc:")) {
     const newer = (theirs.t || 0) > (mine.t || 0) ? theirs : mine;
     return { ...mine, ...theirs, ms: Math.max(mine.ms || 0, theirs.ms || 0), page: newer.page, t: newer.t, url: mine.url || theirs.url, first: Math.min(mine.first || Infinity, theirs.first || Infinity) };
+  }
+  if (k.startsWith("page:")) {
+    const newer = (theirs.t || 0) > (mine.t || 0) ? theirs : mine;
+    return { ...mine, ...theirs, ms: Math.max(mine.ms || 0, theirs.ms || 0), pos: newer.pos, t: newer.t, first: Math.min(mine.first || Infinity, theirs.first || Infinity) };
   }
   if (k.startsWith("ann:")) {
     const ids = new Set((mine.items || []).map((x) => x.id));
@@ -279,16 +344,60 @@ let rvPrefs = { pool: "d7", count: 10, order: "random", dir: "word" };
 const SPEAK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>`;
 const isEn = (s) => /^[A-Za-z][A-Za-z'’ -]*$/.test(s || "");
 
+// Pages and PDFs you can revise from: the saved words that came from each, plus (for saved pages) the saved
+// words that appear in its text.
+let sources = []; // [{ key: "page:…" | "doc:…", kind, label, keys: ["v:…"] }]
+const srcKey = (w) => w.src?.doc || (/^(https?|file):/.test(w.src?.url || "") ? "page:" + pageId(w.src.url) : "");
+function buildSources(all) {
+  const have = new Set(words.map((w) => w.key)), from = new Map();
+  for (const w of words) {
+    const k = srcKey(w);
+    if (k) { if (!from.has(k)) from.set(k, new Set()); from.get(k).add(w.key); }
+  }
+  const wmap = window.BPDWords.fromAll(all), out = [];
+  for (const p of pagesFrom(all)) {
+    const keys = new Set(from.get(p.key));
+    for (const e of window.BPDWords.scan(wmap, pageText(p, all)).values()) if (e.saved && have.has("v:" + e.key)) keys.add("v:" + e.key);
+    out.push({ key: p.key, kind: "Page", label: p.title, keys: [...keys] });
+  }
+  for (const d of docsFrom(all)) {
+    const keys = new Set(from.get(d.key));
+    if (d.url) for (const w of words) if (w.src?.url === d.url) keys.add(w.key);
+    out.push({ key: d.key, kind: "PDF", label: d.title, keys: [...keys] });
+  }
+  return out;
+}
+function reviseSource(key) {
+  rvPrefs = { ...rvPrefs, pool: "src", src: key };
+  store.set({ rvPrefs });
+  location.hash = "#revise";
+  startRound(pickWords());
+  if (!round) renderReviseSetup();
+}
+// library.html?rv=<page or PDF key>#revise (the reader's "Revise these words") starts a round right away.
+let rvParam = new URLSearchParams(location.search).get("rv");
+
 function pools() {
   const now = Date.now();
+  const byKey = new Map(words.map((w) => [w.key, w]));
   return {
+    src: (sources.find((x) => x.key === rvPrefs.src)?.keys || []).map((k) => byKey.get(k)).filter(Boolean),
     d7: words.filter((w) => now - (w.t || 0) < 7 * DAY),
     d30: words.filter((w) => now - (w.t || 0) < 30 * DAY),
     all: words,
     missed: words.filter((w) => rv[w.key]?.lastOk === false)
   };
 }
+const blankable = (w) => !!w.sentence && w.sentence.toLowerCase().includes(w.w.toLowerCase());
 function renderReviseSetup() {
+  const avail = sources.filter((x) => x.keys.length);
+  if (!avail.some((x) => x.key === rvPrefs.src)) rvPrefs.src = avail[0]?.key || "";
+  const sel = $("rvSrc");
+  sel.innerHTML = avail.length ? avail.map((x) => `<option value="${esc(x.key)}">${x.kind}: ${esc(x.label)} (${x.keys.length})</option>`).join("")
+    : `<option value="">None of your pages or PDFs has saved words yet</option>`;
+  sel.value = rvPrefs.src;
+  sel.disabled = !avail.length;
+  document.querySelector("input[name=rvPool][value=src]").disabled = !avail.length;
   const p = pools();
   for (const el of document.querySelectorAll("#rvPool [data-n]")) el.textContent = `(${p[el.dataset.n].length})`;
   for (const [name, v] of [["rvPool", rvPrefs.pool], ["rvCount", String(rvPrefs.count)], ["rvOrder", rvPrefs.order], ["rvDir", rvPrefs.dir]])
@@ -296,10 +405,16 @@ function renderReviseSetup() {
   const n = p[rvPrefs.pool].length, take = rvPrefs.count ? Math.min(rvPrefs.count, n) : n;
   $("rvStart").disabled = !take;
   $("rvInfo").textContent = !words.length ? "Save some words first: double-click a word and press the bookmark button."
-    : !n ? "No words in this group yet. Pick another one." : `${take} word${take === 1 ? "" : "s"} in this round.`;
+    : !n ? "No words in this group yet. Pick another one." : `${take} word${take === 1 ? "" : "s"} in this round.` + clozeInfo(p[rvPrefs.pool]);
+}
+function clozeInfo(list) {
+  if (rvPrefs.dir !== "cloze" || !list.length) return "";
+  const k = list.filter(blankable).length;
+  return k === list.length ? "" : ` ${k} of these have a sentence to fill in; the others are shown as normal cards.`;
 }
 $("rvSetup").addEventListener("change", (e) => {
   const t = e.target;
+  if (t.id === "rvSrc") { rvPrefs.src = t.value; rvPrefs.pool = "src"; }
   if (t.name === "rvPool") rvPrefs.pool = t.value;
   if (t.name === "rvCount") rvPrefs.count = +t.value;
   if (t.name === "rvOrder") rvPrefs.order = t.value;
@@ -335,7 +450,12 @@ function showCard() {
   const meaning = `<span class="ans bn">${esc(w.meaning)}</span>`;
   const more = w.more?.length > 1 ? `<span class="bn muted more">${esc(w.more.filter((x) => x !== w.meaning).slice(0, 4).join(", "))}</span>` : "";
   const sent = w.sentence ? `<span class="sent">${sentenceHtml(w)}</span>` : "";
-  if (round.dir === "word") {
+  const dir = round.dir === "cloze" && !blankable(w) ? "word" : round.dir; // no sentence to fill in: a normal card
+  if (dir === "cloze") {
+    $("rvQ").innerHTML = `<span class="sent cloze">${clozeHtml(w)}</span>` +
+      `<button class="btn link hint" data-hint>Show a hint</button><span class="bn hintv" hidden>${esc(w.meaning)}</span>`;
+    $("rvA").innerHTML = `<span class="ans">${esc(w.w)}${speakBtn(w)}</span>` + meaning + more + sent;
+  } else if (dir === "word") {
     $("rvQ").innerHTML = word + sent; // the sentence gives context but not the meaning
     $("rvA").innerHTML = meaning + more + defHtml(w);
   } else {
@@ -345,6 +465,11 @@ function showCard() {
   round.shown = false;
   $("rvA").hidden = true; $("rvShow").hidden = false; $("rvJudge").hidden = true;
   $("rvShow").focus({ preventScroll: true });
+}
+// The card's sentence with the word blanked out; only its first letter shows.
+function clozeHtml(w) {
+  const i = w.sentence.toLowerCase().indexOf(w.w.toLowerCase());
+  return esc(w.sentence.slice(0, i)) + `<span class="blank" style="--n:${w.w.length}" aria-label="missing word, starts with ${esc(w.w[0])}">${esc(w.w[0])}</span>` + esc(w.sentence.slice(i + w.w.length));
 }
 function reveal() {
   if (!round || round.shown) return;
@@ -396,6 +521,8 @@ $("rvNo").onclick = () => judge(false);
 $("rvQuit").onclick = () => { if (round && round.i > 0) finishEarly(); else endRound(); };
 function finishEarly() { round.list = round.list.slice(0, round.i); finish(); }
 $("revise").addEventListener("click", (e) => {
+  const h = e.target.closest("[data-hint]");
+  if (h) { h.hidden = true; h.nextElementSibling.hidden = false; return; }
   const s = e.target.closest("[data-say]");
   if (!s) return;
   const u = new SpeechSynthesisUtterance(s.dataset.say); u.lang = "en-US";
@@ -439,8 +566,8 @@ $("s-fsDown").onclick = () => store.set({ sideFs: Math.max(FS_MIN, sideFs - 1) }
 $("s-fsUp").onclick = () => store.set({ sideFs: Math.min(FS_MAX, sideFs + 1) });
 $("s-wReset").onclick = () => store.remove("sideW");
 
-const ALL = ["docs", "words", "time", "backup", "settings"];
-const RENDER = { docs: renderDocs, words: loadWords, time: renderTime, backup: renderBackupSummary, settings: renderSettings };
+const ALL = ["docs", "words", "pages", "time", "backup", "settings"]; // "words" before "pages": it finds your words on each page
+const RENDER = { docs: renderDocs, words: loadWords, pages: renderPages, time: renderTime, backup: renderBackupSummary, settings: renderSettings };
 let restoring = false, dirty = new Set(), timer = 0, queue = Promise.resolve();
 function refresh(parts) {
   for (const p of parts) dirty.add(p);
@@ -450,18 +577,20 @@ function refresh(parts) {
     const run = [...dirty]; dirty = new Set();
     queue = queue.then(async () => {
       const all = await store.get(null);
-      for (const p of run) RENDER[p](all);
+      for (const p of ALL) if (run.includes(p)) RENDER[p](all);
+      if (rvParam && run.includes("words")) { const k = rvParam; rvParam = null; history.replaceState(null, "", location.pathname + "#revise"); reviseSource(k); }
     }).catch((e) => console.error(e));
   }, 50);
 }
 function partsFor(keys) {
   const s = new Set();
   for (const k of keys) {
-    if (k.startsWith("doc:") || k.startsWith("ann:")) s.add("docs").add("time").add("backup");
+    if (k.startsWith("page:") || k.startsWith("ptext:")) s.add("words").add("pages").add("time").add("backup");
+    else if (k.startsWith("doc:") || k.startsWith("ann:")) s.add("docs").add("words").add("pages").add("time").add("backup");
     else if (k === "recall") s.add("words").add("settings");
     else if (SETTINGS.includes(k)) s.add("settings");
     else if (k.startsWith("rv:")) s.add("words").add("backup");
-    else if (k.startsWith("v:")) s.add("words").add("time").add("backup");
+    else if (k.startsWith("v:")) s.add("words").add("pages").add("time").add("backup");
     else if (k.startsWith("day:")) s.add("time").add("backup");
   }
   return s;

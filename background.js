@@ -1,4 +1,6 @@
 import { lookupEnglish, lookupBangla } from "./dict.js";
+import { savePage, openPage, pageId, normUrl } from "./pages.js";
+import { renameDoc } from "./shared.js";
 
 const VIEWER = chrome.runtime.getURL("viewer.html");
 const RULE_ID = 1;
@@ -21,8 +23,10 @@ async function setupRules() {
 // Menus survive an extension reload/update, so clear them first or Chrome reports "duplicate id".
 function setupMenus() {
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({ id: "open-link", title: "Open PDF link in Shobdo", contexts: ["link"] },
-      () => void chrome.runtime.lastError);
+    const ok = () => void chrome.runtime.lastError;
+    chrome.contextMenus.create({ id: "open-link", title: "Open PDF link in Shobdo", contexts: ["link"] }, ok);
+    chrome.contextMenus.create({ id: "save-page", title: "Save page to Shobdo", contexts: ["page"], documentUrlPatterns: ["http://*/*", "https://*/*", "file://*/*"] }, ok);
+    chrome.contextMenus.create({ id: "save-selection", title: "Save selected text to Shobdo", contexts: ["selection"], documentUrlPatterns: ["http://*/*", "https://*/*", "file://*/*"] }, ok);
   });
 }
 const safeRules = () => setupRules().catch((e) => console.warn("PDF redirect rule not set:", e.message));
@@ -30,9 +34,17 @@ const safeRules = () => setupRules().catch((e) => console.warn("PDF redirect rul
 chrome.runtime.onInstalled.addListener(() => { safeRules(); setupMenus(); });
 chrome.runtime.onStartup.addListener(safeRules);
 chrome.storage.onChanged.addListener((c) => { if ("autoOpen" in c) safeRules(); });
-chrome.contextMenus.onClicked.addListener((info) => {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "open-link") chrome.tabs.create({ url: VIEWER + "?file=" + info.linkUrl });
+  if ((info.menuItemId === "save-page" || info.menuItemId === "save-selection") && tab?.id >= 0) {
+    const r = await savePage(tab.id, info.menuItemId === "save-page" ? "page" : "selection");
+    tell(tab.id, r);
+  }
 });
+// Show "Saved" (or why not) on the page itself; site.js draws the message.
+function tell(tabId, r) {
+  chrome.tabs.sendMessage(tabId, { type: "shobdoSaved", ...r }, { frameId: 0 }).catch(() => {});
+}
 
 // ---- Online sources ----
 async function getJson(url) {
@@ -112,7 +124,7 @@ async function record(text, lemma, meaning) {
   await chrome.storage.local.set({ [key]: h, [day]: d });
 }
 
-chrome.runtime.onMessage.addListener((msg, _sender, send) => {
+chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg?.type === "offline") {
     lookupOffline(msg.text).then(async (r) => {
       if (msg.record && !/\s/.test(msg.text)) await record(msg.text, r?.lemma, r?.bn?.[0] || r?.en?.[0]).catch(() => {});
@@ -124,6 +136,22 @@ chrome.runtime.onMessage.addListener((msg, _sender, send) => {
     lookupOnline(msg.text).then(send, (e) => send({ error: String(e) }));
     return true;
   }
+  if (msg?.type === "savePage") {
+    const tabId = msg.tabId ?? sender.tab?.id;
+    savePage(tabId, msg.mode || "page", msg.name).then((r) => { if (!msg.tabId) tell(tabId, r); send(r); });
+    return true;
+  }
+  if (msg?.type === "pageStatus") {
+    // Is this address saved, and how many of your saved words came from it?
+    const id = pageId(msg.url), url = normUrl(msg.url);
+    chrome.storage.local.get(null).then((all) => send({
+      id, saved: !!all["page:" + id],
+      fromHere: Object.entries(all).filter(([k, v]) => k.startsWith("v:") && v.src?.url && normUrl(v.src.url) === url).length
+    }));
+    return true;
+  }
+  if (msg?.type === "openPage" && msg.id) openPage(msg.id);
+  if (msg?.type === "renamePage" && msg.id) { renameDoc("page:" + msg.id, msg.name).then(() => send(true)); return true; }
   if (msg?.type === "openViewer") {
     chrome.tabs.create({ url: VIEWER + (msg.file ? "?file=" + msg.file : "") });
   }

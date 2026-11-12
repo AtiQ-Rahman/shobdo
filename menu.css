@@ -18,3 +18,12 @@ li button:focus-visible { outline: 2px solid var(--green); }
 .settings { display: grid; gap: 6px; font-size: 0.929rem; }
 footer a { white-space: nowrap; }
 footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 0.857rem; }
+.name-row { display: grid; gap: 2px; font-size: 0.857rem; font-weight: 600; color: var(--muted); }
+.name-row input { font-weight: 400; font-size: 1rem; color: var(--ink); padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.name-row input:focus { border-color: var(--green); outline: none; }
+.saved-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.saved-row .btn:last-child { width: auto; }
+.save-msg { margin: 0; font-size: 0.857rem; color: var(--muted); }
+.save-msg:empty { display: none; }
+.save-msg.err { color: var(--danger); }
+[hidden] { display: none !important; }

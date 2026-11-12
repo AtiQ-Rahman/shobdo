@@ -13,6 +13,7 @@
       <h1>Library</h1>
       <nav role="tablist">
         <a role="tab" href="#pdfs" data-tab="pdfs">PDFs</a>
+        <a role="tab" href="#pages" data-tab="pages">Saved pages <span id="pageCount" class="muted"></span></a>
         <a role="tab" href="#words" data-tab="words">My words <span id="wordCount" class="muted"></span></a>
         <a role="tab" href="#revise" data-tab="revise">Revise</a>
         <a role="tab" href="#time" data-tab="time">Reading time</a>
@@ -24,6 +25,12 @@
   <main class="wrap">
     <section id="pdfs" hidden>
       <ul id="docList" class="cards"></ul>
+    </section>
+
+    <section id="pages" hidden>
+      <p class="muted intro">Save a webpage from the Shobdo toolbar menu, the “my words” button on the page, or right-click → <b>Save page to Shobdo</b>.
+        Its text is kept here, so you can read it again, highlight it and revise its words, even offline.</p>
+      <ul id="pageList" class="cards"></ul>
     </section>
 
     <section id="words" hidden>
@@ -46,6 +53,8 @@
           <label><input type="radio" name="rvPool" value="d30"> Saved in the last 30 days <span class="muted" data-n="d30"></span></label>
           <label><input type="radio" name="rvPool" value="all"> All my words <span class="muted" data-n="all"></span></label>
           <label><input type="radio" name="rvPool" value="missed"> Ones I got wrong last time <span class="muted" data-n="missed"></span></label>
+          <label class="src-row"><input type="radio" name="rvPool" value="src"> From one page or PDF
+            <select id="rvSrc" aria-label="Which page or PDF"></select></label>
         </fieldset>
         <fieldset id="rvCount" class="inline"><legend>How many</legend>
           <label><input type="radio" name="rvCount" value="10"> 10</label>
@@ -60,6 +69,7 @@
         <fieldset id="rvDir"><legend>Show me</legend>
           <label><input type="radio" name="rvDir" value="word"> The word, and I recall its meaning</label>
           <label><input type="radio" name="rvDir" value="meaning"> The meaning, and I recall the word</label>
+          <label><input type="radio" name="rvDir" value="cloze"> The sentence with the word missing, and I fill it in</label>
         </fieldset>
         <div class="rv-go"><button id="rvStart" class="btn primary">Start</button><span id="rvInfo" class="muted"></span></div>
       </div>
@@ -88,7 +98,7 @@
       <div class="stats" id="stats"></div>
       <h2>Last 14 days</h2>
       <div id="chart" class="chart" role="img"></div>
-      <h2>Time per PDF</h2>
+      <h2>Time per PDF and page</h2>
       <ul id="perDoc" class="rows"></ul>
     </section>
     <section id="backup" hidden>
@@ -157,6 +167,7 @@
       </div>
     </section>
   </main>
+  <script src="words.js"></script>
   <script type="module" src="library.js"></script>
 </body>
 </html>

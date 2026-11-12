@@ -48,7 +48,10 @@
   // form -> { key, word, meaning, def, saved, session }
   // Only saved words come from storage; words looked up during this visit are added with add().
   async function load() {
-    const all = await chrome.storage.local.get(null);
+    return fromAll(await chrome.storage.local.get(null));
+  }
+  // The same, from storage contents you already have (the Library reads everything at once).
+  function fromAll(all) {
     const map = new Map();
     for (const [k, s] of Object.entries(all)) {
       if (!k.startsWith("v:")) continue;
@@ -105,5 +108,5 @@
     return [...found.values()].sort((a, b) => (b.saved - a.saved) || b.count - a.count || a.word.localeCompare(b.word));
   }
 
-  window.BPDWords = { load, add, scan, match, sorted, WORD };
+  window.BPDWords = { load, fromAll, add, scan, match, sorted, WORD };
 })();

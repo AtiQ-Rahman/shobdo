@@ -2,7 +2,7 @@
 
 Read English PDFs and webpages with Bangla help.
 
-▶ **[Watch the 90-second demo](media/shobdo-demo.mp4)**
+▶ **[Watch the 2-minute demo](media/shobdo-demo.mp4)**
 
 - **Double-click a word** to see its Bangla meaning, English definitions, pronunciation, how common it is,
   its base form (running → run) and the sentence it's in. You can translate that sentence with one click.
@@ -10,7 +10,15 @@ Read English PDFs and webpages with Bangla help.
 - **Bangla words work too**: double-click a Bangla word to get its English meaning.
 - **Save words** with the bookmark button. You can see them in Library → My words and export them as CSV for Anki.
 - **Words you've looked up** get a dotted underline in PDFs.
-- **In the PDF reader only:** highlight in 4 colors, add notes to highlights, write notes about the whole PDF,
+- **Save webpages to read later**: toolbar menu → *Save this page to read later*, the “my words” panel on a page,
+  or right-click → *Save page to Shobdo* (or *Save selected text to Shobdo* for just a part). You can give it a short
+  name while saving; long titles lose the site name automatically. Shobdo keeps the article's text (pictures stay
+  links to the website), so it opens even if the page changes or goes away. In the saved copy you can highlight in
+  4 colors, add notes, see your words, and export notes as Markdown. Find them in Library → Saved pages.
+- **Revise by page**: Revise → *From one page or PDF* practises only the words from that page or PDF (the reader's
+  Words tab and Library → Saved pages have a *Revise* button too). *The sentence with the word missing* turns the
+  sentence you met the word in into a fill-in-the-blank card.
+- **In the PDF reader and saved pages:** highlight in 4 colors, add notes to highlights, write notes about the whole PDF,
   and export your notes as Markdown (side panel → Export).
 - **Your words, everywhere**: the PDF reader's **Words** tab lists your saved and looked-up words that appear
   in the PDF (with pages; click to jump). Saved words get a solid underline and looked-up words a dotted one.
@@ -40,7 +48,9 @@ Your words, highlights and notes are kept. Still, it's good to take a backup fir
   are redirected to the bundled pdf.js reader (`viewer.html`). You can turn this off in the toolbar menu.
 - Lookups: offline dictionary first (instant), then Google Translate (falls back to MyMemory) and
   dictionaryapi.dev for pronunciation.
-- Everything you save (words, highlights, notes, reading time, history) stays in `chrome.storage.local` on your computer.
+- Saving a page runs Readability (the code behind Firefox's Reader View) on it, then keeps only plain text tags:
+  scripts, styles, forms, frames and event handlers are removed before it is stored and again before it is shown.
+- Everything you save (words, saved pages, highlights, notes, reading time, history) stays in `chrome.storage.local` on your computer.
 - Highlights and notes belong to the PDF itself (matched by its fingerprint), not to its URL. So when you
   open the same file again, even from somewhere else, your highlights and notes come back.
 
@@ -51,6 +61,7 @@ Your words, highlights and notes are kept. Still, it's good to take a backup fir
   publish the extension it must be distributed under GPL-3.0.
 - hermitdave/FrequencyWords en_50k — CC-BY-SA 4.0 (how common a word is)
 - pdf.js (legacy build) — Apache-2.0, in `lib/`
+- Readability.js 0.5.0 (Mozilla) — Apache-2.0, in `lib/`
 - pdf-lib 1.17.1 — MIT, in `lib/`
 
 ## License

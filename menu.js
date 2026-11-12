@@ -1,4 +1,5 @@
-import { store, VIEWER, esc, dayKey, fmtTime, ago, docs, openDoc } from "./shared.js";
+import { store, VIEWER, esc, dayKey, fmtTime, ago, docs, openDoc, renameDoc } from "./shared.js";
+import { pageId, pagesFrom, openPage, shortTitle } from "./pages.js";
 const $ = (id) => document.getElementById(id);
 
 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -18,7 +19,59 @@ if (tab?.url && /^(https?|file):/.test(tab.url) && !tab.url.startsWith(VIEWER) &
   $("openTab").hidden = false;
   $("openTab").onclick = () => { chrome.tabs.update(tab.id, { url: VIEWER + "?file=" + tab.url }); close(); };
 }
+else if (tab?.url && /^(https?|file):/.test(tab.url)) setupSave(tab);
 $("openFile").onclick = () => { chrome.tabs.create({ url: VIEWER }); close(); };
+
+// ---------- save this page ----------
+async function setupSave(tab) {
+  const id = pageId(tab.url), key = "page:" + id;
+  const show = (saved) => { $("savePage").hidden = saved; $("savedRow").hidden = !saved; };
+  // The name box: before saving it suggests a short title; once saved, changing it renames the saved copy.
+  const rec = (await store.get(key))[key];
+  let savedId = rec ? id : null, edited = false;
+  const name = $("saveName");
+  name.value = rec ? rec.name || rec.title : shortTitle(tab.title || "", new URL(tab.url).hostname);
+  $("nameRow").hidden = false;
+  show(!!rec);
+  name.oninput = () => { edited = true; };
+  const rename = async () => {
+    if (!savedId || !edited) return;
+    edited = false;
+    await renameDoc("page:" + savedId, name.value);
+    $("saveMsg").className = "save-msg"; $("saveMsg").textContent = "Name saved.";
+  };
+  name.onkeydown = (e) => { if (e.key === "Enter") { if (savedId) rename(); else $("savePage").click(); } };
+  name.onblur = rename;
+  $("openSaved").onclick = () => { openPage(id); close(); };
+  const save = async (btn) => {
+    const msg = $("saveMsg");
+    btn.disabled = true; msg.className = "save-msg"; msg.textContent = "Saving…";
+    const r = await chrome.runtime.sendMessage({ type: "savePage", tabId: tab.id, name: edited || savedId ? name.value : "" }).catch((e) => ({ error: e.message }));
+    btn.disabled = false;
+    if (r?.ok) {
+      msg.textContent = r.updated ? "Saved again. Your highlights and notes are kept." : "Saved. Find it any time in Library → Saved pages.";
+      $("openSaved").onclick = () => { openPage(r.id); close(); };
+      savedId = r.id; edited = false;
+      if (document.activeElement !== name) name.value = r.title;
+      show(true);
+    } else { msg.className = "save-msg err"; msg.textContent = r?.error || "Couldn't save this page."; }
+  };
+  $("savePage").onclick = (e) => save(e.currentTarget);
+  $("resave").onclick = (e) => save(e.currentTarget);
+}
+
+// ---------- recent saved pages ----------
+const pages = pagesFrom(await store.get(null)).slice(0, 3);
+$("pagesSec").hidden = !pages.length;
+$("pages").innerHTML = pages.map((p, i) => `
+  <li><button data-p="${i}" title="${esc(p.url)}">
+    <span class="t">${esc(p.title)}</span>
+    <span class="m">${esc(p.site || "")}${p.site ? " · " : ""}${p.ms ? fmtTime(p.ms) + " · " : ""}saved ${ago(p.saved)}</span>
+  </button></li>`).join("");
+$("pages").onclick = (e) => {
+  const b = e.target.closest("button[data-p]");
+  if (b) { openPage(pages[+b.dataset.p].id); close(); }
+};
 
 const list = await docs();
 $("recent").innerHTML = list.length ? list.slice(0, 5).map((d, i) => `

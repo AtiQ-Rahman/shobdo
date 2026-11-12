@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Shobdo",
-  "version": "0.3.0",
-  "description": "Double-click any word in a PDF or webpage for its Bangla and English meaning. Highlight, take notes and track your reading.",
+  "version": "0.4.0",
+  "description": "Double-click any word in a PDF or webpage for its Bangla and English meaning. Save pages, highlight, take notes and revise your words.",
   "permissions": [
     "declarativeNetRequest",
     "contextMenus",
+    "scripting",
     "storage",
     "unlimitedStorage"
   ],

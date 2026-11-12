@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shobdo</title>
+<link rel="stylesheet" href="viewer.css">
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+  <header id="bar">
+    <span id="title" class="title" role="button" tabindex="0" title="Click to rename this page"></span>
+    <input id="titleInput" class="title-in" maxlength="200" hidden aria-label="New name for this page" title="Enter to save, Esc to cancel. Leave empty to go back to the original name.">
+    <span class="spacer"></span>
+    <span id="timer" class="timer" hidden title="Time spent reading this page. Pauses when you switch tabs or stop scrolling for 2 minutes.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span id="timerText">0 min</span>
+    </span>
+    <a id="origBtn" class="btnlink" target="_blank" rel="noopener noreferrer" title="Open the page on its website" hidden>Original page</a>
+    <button id="wordsBtn" title="Your saved and looked-up words that appear on this page">Words <span id="wordCount" class="count"></span></button>
+    <button id="notesBtn" title="Highlights and notes">Notes <span id="noteCount" class="count"></span></button>
+    <a id="libraryBtn" class="btnlink" href="library.html#pages" target="_blank" title="Saved pages, PDFs, words and reading time">Library</a>
+    <a id="settingsBtn" class="btnlink icon" href="library.html#settings" target="_blank" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+  </header>
+  <div id="viewerContainer">
+    <article id="doc" class="reader">
+      <header class="doc-head">
+        <h1 id="docTitle"></h1>
+        <p id="docMeta" class="doc-meta"></p>
+      </header>
+      <div id="content" class="content"></div>
+    </article>
+  </div>
+  <div id="sideResize" role="separator" aria-orientation="vertical" aria-label="Resize panel" tabindex="0" title="Drag to resize the panel (or use ← →)"></div>
+  <aside id="side" hidden>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-pane="words" aria-selected="false">Words</button>
+      <button role="tab" data-pane="notes" aria-selected="true">Notes</button>
+      <span class="fontsz" role="group" aria-label="Text size">
+        <button id="fontDown" title="Smaller text" aria-label="Smaller text">A−</button>
+        <button id="fontUp" title="Bigger text" aria-label="Bigger text">A+</button>
+      </span>
+      <button class="close" title="Close panel" aria-label="Close panel">✕</button>
+    </div>
+    <section id="paneNotes" class="pane">
+      <div class="side-actions">
+        <button class="export" title="Download highlights and notes as a Markdown file">Export notes (.md)</button>
+      </div>
+      <label class="docnote-label" for="docnote">Notes on this page</label>
+      <textarea id="docnote" class="docnote" rows="4" placeholder="Write anything about this page…"></textarea>
+      <div class="docnote-label">Highlights</div>
+      <ul class="list"></ul>
+    </section>
+    <section id="paneWords" class="pane" hidden>
+      <p class="pane-intro">Your saved words that appear on this page, plus words you look up while reading. Click one to jump to it.</p>
+      <div class="side-actions"><button id="reviseBtn" class="primary-sm" hidden>Revise these words</button></div>
+      <div class="recall-bar">
+        <label title="Hide meanings so you can test yourself. Click a hidden meaning to check it."><input type="checkbox" id="recallToggle"> Recall mode</label>
+        <button id="showAll" hidden>Show all</button>
+      </div>
+      <ul id="wordList" class="wlist"></ul>
+    </section>
+  </aside>
+  <div id="status"></div>
+  <script src="sanitize.js"></script>
+  <script src="words.js"></script>
+  <script src="popup.js"></script>
+  <script src="content.js"></script>
+  <script type="module" src="reader.js"></script>
+</body>
+</html>

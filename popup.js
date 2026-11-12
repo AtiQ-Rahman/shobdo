@@ -168,7 +168,7 @@
       await chrome.storage.local.set({ [key]: {
         w: m.text, lemma: m.off?.lemma || m.text.toLowerCase(), meaning: hero(m),
         more: (m.off?.bn || m.off?.en || []).slice(0, 5), def: d ? d[1] : "", pos: d ? d[0] : "",
-        sentence: m.sentence?.text || "", src: { title: m.ctx?.title || document.title, url: m.ctx?.url || location.href },
+        sentence: m.sentence?.text || "", src: { title: m.ctx?.title || document.title, url: m.ctx?.url || location.href, ...(m.ctx?.docKey ? { doc: m.ctx.docKey } : {}) },
         t: Date.now()
       } });
       m.saved = true;

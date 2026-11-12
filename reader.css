@@ -1,0 +1,40 @@
+/* Saved-page reader. The bar, side panel, word list and highlight editor come from viewer.css. */
+#viewerContainer { background: var(--bg); }
+.reader { max-width: 44rem; margin: 24px auto 64px; padding: 32px 40px 48px; background: var(--bar); border: 1px solid var(--line); border-radius: 10px; }
+.doc-head { border-bottom: 1px solid var(--line); margin-bottom: 20px; padding-bottom: 12px; }
+.doc-head h1 { font: 700 1.75rem/1.25 Georgia, "Times New Roman", serif; margin: 0 0 6px; overflow-wrap: anywhere; }
+.doc-meta { margin: 0; color: var(--muted); font-size: .929rem; }
+.doc-meta a { color: var(--green); }
+
+.content { font: 1.125rem/1.75 Georgia, "Times New Roman", "Noto Serif Bengali", serif; overflow-wrap: anywhere; }
+.content p, .content ul, .content ol, .content blockquote, .content pre, .content figure, .content table { margin: 0 0 1em; }
+.content h1, .content h2, .content h3, .content h4, .content h5, .content h6 { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.3; margin: 1.4em 0 .5em; }
+.content h1 { font-size: 1.5rem; } .content h2 { font-size: 1.3rem; } .content h3 { font-size: 1.15rem; } .content h4, .content h5, .content h6 { font-size: 1rem; }
+.content a { color: var(--green); }
+.content img { max-width: 100%; height: auto; border-radius: 4px; }
+.content figure { margin-left: 0; margin-right: 0; }
+.content figcaption { font: .857rem/1.4 system-ui, sans-serif; color: var(--muted); margin-top: 4px; }
+.content blockquote { border-left: 3px solid var(--line); margin-left: 0; padding-left: 14px; color: var(--muted); }
+.content pre { overflow: auto; background: var(--bg); padding: 10px 12px; border-radius: 6px; font-size: .857rem; line-height: 1.5; }
+.content code { font-family: ui-monospace, Consolas, monospace; font-size: .9em; }
+.content table { border-collapse: collapse; display: block; overflow-x: auto; font-size: .929rem; }
+.content th, .content td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.content hr { border: 0; border-top: 1px solid var(--line); margin: 1.5em 0; }
+
+/* your words */
+.content .bpd-saved { text-decoration: underline solid var(--green); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.content .bpd-seen { text-decoration: underline dotted var(--green); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+/* highlights */
+mark.bpd-mark { color: inherit; background: color-mix(in srgb, var(--c) calc(var(--hl-alpha) * 100%), transparent); border-radius: 2px; cursor: pointer; }
+mark.bpd-mark.note-end::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 2px; border-radius: 50% 50% 50% 0; background: var(--c); border: 1.5px solid var(--bar); vertical-align: super; }
+mark.bpd-mark.flash { animation: hlflash 1.2s ease-out 2; }
+@keyframes hlflash { 50% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { mark.bpd-mark.flash { animation: none; outline: 2px solid var(--green); } }
+.list .lost { display: block; font-size: .8em; color: #c92a2a; }
+
+#status { z-index: 3; }
+@media (max-width: 760px) {
+  .reader { margin: 0; padding: 20px 16px 40px; border-radius: 0; border-width: 0; }
+  #origBtn { display: none; }
+}

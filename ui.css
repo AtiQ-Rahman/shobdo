@@ -1,0 +1,17 @@
+:root { --surface: #ffffff; --ink: #1c2421; --muted: #5e6b66; --bg: #f2f5f4; --line: #dde4e1; --green: #006a4e; --tint: #e7f2ee; --on-green: #fff; --danger: #c92a2a; }
+@media (prefers-color-scheme: dark) { :root { --surface: #18201d; --ink: #e6ece9; --muted: #9aa8a2; --bg: #101513; --line: #2c3833; --green: #4fc69a; --tint: #1f3029; --on-green: #0f1a16; --danger: #ff8787; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+.bn { font-family: "Noto Serif Bengali", "Noto Sans Bengali", "Hind Siliguri", "Nirmala UI", Vrinda, serif; }
+.muted { color: var(--muted); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.btn:hover { background: var(--tint); }
+.btn.primary { background: var(--green); border-color: var(--green); color: var(--on-green); font-weight: 600; }
+.btn.link { border: 0; background: none; padding: 0; color: var(--green); font-weight: 600; }
+.btn.danger { color: var(--danger); }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+.switch input { accent-color: var(--green); width: 16px; height: 16px; }
+.prog { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--green); }

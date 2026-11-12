@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shobdo</title>
+<link rel="stylesheet" href="lib/pdf_viewer.css">
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <header id="bar">
+    <button id="openBtn" class="primary" title="Open a PDF from your computer">Open PDF</button>
+    <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
+    <span id="title" class="title"></span>
+    <span class="spacer"></span>
+    <span id="timer" class="timer" hidden title="Time spent reading this PDF. Pauses when you switch tabs or stop scrolling for 2 minutes.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span id="timerText">0 min</span>
+    </span>
+    <span class="group">
+      <input id="pageInput" type="number" min="1" value="1" aria-label="Page number"> <span class="of">of <span id="pageCount">–</span></span>
+    </span>
+    <span class="group">
+      <button id="zoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+      <span id="zoomLabel">100%</span>
+      <button id="zoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+    </span>
+    <button id="wordsBtn" title="Your saved and looked-up words that appear in this PDF">Words <span id="wordCount" class="count"></span></button>
+    <button id="notesBtn" title="Highlights and notes">Notes <span id="noteCount" class="count"></span></button>
+    <a id="libraryBtn" class="btnlink" href="library.html" target="_blank" title="Reading history, saved words and reading time">Library</a>
+  </header>
+  <div id="viewerContainer"><div id="viewer" class="pdfViewer"></div></div>
+  <aside id="side" hidden>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-pane="words" aria-selected="false">Words</button>
+      <button role="tab" data-pane="notes" aria-selected="true">Notes</button>
+      <button class="close" title="Close panel" aria-label="Close panel">✕</button>
+    </div>
+    <section id="paneNotes" class="pane">
+      <div class="side-actions">
+        <button id="downloadPdf" class="primary-sm" title="Save a copy of this PDF with your highlights and notes inside. Adobe Reader, Chrome and other PDF apps will show them.">Download PDF with highlights</button>
+        <button class="export" title="Download highlights and notes as a Markdown file">Export notes (.md)</button>
+      </div>
+      <p id="dlStatus" class="dl-status"></p>
+      <label class="docnote-label" for="docnote">Notes on this PDF</label>
+      <textarea id="docnote" class="docnote" rows="4" placeholder="Write anything about this PDF…"></textarea>
+      <div class="docnote-label">Highlights</div>
+      <ul class="list"></ul>
+    </section>
+    <section id="paneWords" class="pane" hidden>
+      <p class="pane-intro">Your saved words that appear in this PDF, plus words you look up while reading. Click one to jump to it.</p>
+      <ul id="wordList" class="wlist"><li class="empty">Scanning this PDF…</li></ul>
+    </section>
+  </aside>
+  <div id="empty">
+    <p><strong>Double-click any word</strong> to see its Bangla and English meaning.</p>
+    <p>Select text to translate it, highlight it, or add a note.</p>
+    <p>Open a PDF with the button above, or drop a PDF file here.</p>
+  </div>
+  <div id="status"></div>
+  <script src="lib/pdf-lib.min.js"></script>
+  <script src="words.js"></script>
+  <script src="popup.js"></script>
+  <script src="content.js"></script>
+  <script type="module" src="viewer.js"></script>
+</body>
+</html>

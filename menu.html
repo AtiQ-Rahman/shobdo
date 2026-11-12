@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shobdo</title>
+<link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="menu.css">
+</head>
+<body>
+  <header>
+    <strong>Shobdo</strong>
+    <p id="today" class="muted"></p>
+  </header>
+  <section class="actions">
+    <button id="openTab" class="btn primary" hidden>Open this PDF in the reader</button>
+    <button id="openFile" class="btn">Open a PDF from your computer</button>
+  </section>
+  <section>
+    <div class="sec-head"><span>Recent PDFs</span><a id="all" href="library.html" target="_blank">See all</a></div>
+    <ul id="recent"></ul>
+  </section>
+  <section class="settings">
+    <label class="switch">Open .pdf links in the reader <input id="autoOpen" type="checkbox"></label>
+    <label class="switch">Underline my saved words in PDFs <input id="markSeen" type="checkbox"></label>
+    <label class="switch">Show “my words” button on websites <input id="siteBadge" type="checkbox"></label>
+  </section>
+  <footer>
+    <a href="library.html#words" target="_blank">My words</a>
+    <a href="library.html#time" target="_blank">Reading time</a>
+    <a href="library.html#backup" target="_blank">Backup</a>
+  </footer>
+  <script type="module" src="menu.js"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library — Shobdo</title>
+<link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="library.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1>Library</h1>
+      <nav role="tablist">
+        <a role="tab" href="#pdfs" data-tab="pdfs">PDFs</a>
+        <a role="tab" href="#words" data-tab="words">My words <span id="wordCount" class="muted"></span></a>
+        <a role="tab" href="#time" data-tab="time">Reading time</a>
+        <a role="tab" href="#backup" data-tab="backup">Backup</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <section id="pdfs" hidden>
+      <ul id="docList" class="cards"></ul>
+    </section>
+
+    <section id="words" hidden>
+      <div class="toolbar">
+        <input id="q" type="search" placeholder="Search words or meanings" aria-label="Search saved words">
+        <button id="csv" class="btn" title="Two columns (word, meaning + definition + sentence) — import into Anki or a spreadsheet">Export for Anki (CSV)</button>
+      </div>
+      <ul id="wordList" class="cards"></ul>
+    </section>
+
+    <section id="time" hidden>
+      <div class="stats" id="stats"></div>
+      <h2>Last 14 days</h2>
+      <div id="chart" class="chart" role="img"></div>
+      <h2>Time per PDF</h2>
+      <ul id="perDoc" class="rows"></ul>
+    </section>
+    <section id="backup" hidden>
+      <div class="panel">
+        <h2>Back up your data</h2>
+        <p>Download one file with your saved words, highlights, notes, PDF history, reading time and settings. Keep it somewhere safe, like Google Drive or a pen drive.</p>
+        <p id="backupSummary" class="muted"></p>
+        <button id="backupBtn" class="btn primary">Download backup</button>
+      </div>
+      <div class="panel">
+        <h2>Restore from a backup</h2>
+        <p>Pick a backup file. You'll see what's inside before anything changes.</p>
+        <input id="restoreFile" type="file" accept=".json,application/json" hidden>
+        <button id="pickBtn" class="btn">Choose backup file</button>
+        <div id="restorePreview" hidden>
+          <p id="restoreInfo"></p>
+          <fieldset>
+            <legend>How to restore</legend>
+            <label><input type="radio" name="mode" value="merge" checked> <b>Merge</b> — keep what's here and add what's in the backup. Nothing is lost.</label>
+            <label><input type="radio" name="mode" value="replace"> <b>Replace</b> — delete what's here and use only the backup.</label>
+          </fieldset>
+          <button id="restoreBtn" class="btn primary">Restore</button>
+          <button id="cancelRestore" class="btn">Cancel</button>
+        </div>
+        <p id="restoreStatus" role="status"></p>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="library.js"></script>
+</body>
+</html>

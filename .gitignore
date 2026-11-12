@@ -3,3 +3,11 @@ dist/
 *.zip
 __pycache__/
 .DS_Store
+tools/video/shots/
+tools/video/audio/
+tools/video/frames/
+tools/video/profile/
+tools/video/meta.json
+tools/video/timeline.json
+tools/video/site/article.pdf
+tools/video/*.mp4

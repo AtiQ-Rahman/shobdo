@@ -222,5 +222,5 @@ export function initAnnotations({ viewer, eventBus, container, side, countEl }) 
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
-  return { setDocument, getData: () => data };
+  return { setDocument, setTitle: (t) => { title = t; }, getData: () => data };
 }

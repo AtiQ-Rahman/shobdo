@@ -46,7 +46,7 @@
   const ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M8 7h7"/></svg>`;
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  let host, root, found = [], map = new Map(), dismissed = false;
+  let host, root, found = [], map = new Map();
   let uiFs = 16; // global text size from Settings
   chrome.storage.local.get("uiFs").then((r) => { uiFs = r.uiFs || 16; host?.style.setProperty("--ui-fs", uiFs + "px"); }).catch(() => {});
   chrome.storage.onChanged.addListener((c) => { if (c.uiFs) { uiFs = c.uiFs.newValue || 16; host?.style.setProperty("--ui-fs", uiFs + "px"); } });
@@ -59,7 +59,6 @@
   }
 
   async function run() {
-    if (dismissed) return;
     const s = await chrome.storage.local.get(["siteBadge", "recall"]);
     if (s.siteBadge === false) { host?.remove(); return; }
     if ((s.recall !== false) !== recall) { recall = s.recall !== false; revealed.clear(); }
@@ -84,7 +83,7 @@
     root.innerHTML = `<style>${CSS}</style><div class="wrap">
       <div class="panel" ${open ? "" : "hidden"} role="dialog" aria-label="Your words on this page">
         <div class="head"><div><b>Your words on this page</b><p>${saved} saved${found.length - saved ? ` · ${found.length - saved} looked up now` : ""}</p></div>
-          <button class="x" data-act="hide" title="Hide for this page" aria-label="Hide for this page">✕</button></div>
+          <button class="x" data-act="min" title="Minimize" aria-label="Minimize">✕</button></div>
         <div class="bar"><button class="tog" data-act="recall" aria-pressed="${recall}" title="Hide meanings so you can test yourself. Click a hidden meaning to check it.">Recall mode</button>
           <button class="all" data-act="all" ${recall ? "" : "hidden"}>Show all</button></div>
         <ul>${found.map((w, i) => {
@@ -106,7 +105,10 @@
     if (b.dataset.act === "toggle") {
       const p = root.querySelector(".panel"); p.hidden = !p.hidden; b.setAttribute("aria-expanded", String(!p.hidden));
     }
-    if (b.dataset.act === "hide") { dismissed = true; host.remove(); }
+    if (b.dataset.act === "min") {
+      root.querySelector(".panel").hidden = true;
+      const chip = root.querySelector(".chip"); chip.setAttribute("aria-expanded", "false"); chip.focus();
+    }
     if (b.dataset.act === "recall") { recall = !recall; revealed.clear(); chrome.storage.local.set({ recall }); render(); }
     if (b.dataset.act === "all") { for (const w of found) revealed.add(w.key); render(); }
     if (b.dataset.k) { revealed.add(b.dataset.k); render(); }

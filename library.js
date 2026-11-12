@@ -1,4 +1,4 @@
-import { store, esc, dayKey, fmtTime, ago, docsFrom, openDoc, watchTextSize, TEXT_SIZES, DEFAULT_UI_FS } from "./shared.js";
+import { store, esc, dayKey, fmtTime, ago, docsFrom, openDoc, renameDoc, watchTextSize, TEXT_SIZES, DEFAULT_UI_FS } from "./shared.js";
 watchTextSize();
 const $ = (id) => document.getElementById(id);
 
@@ -13,11 +13,16 @@ showTab();
 
 // ---------- PDFs ----------
 let docList = [];
+let renaming = null; // key of the PDF whose name is being edited
 function renderDocs(all) {
-  docList = docsFrom(all);
+  const typing = $("docList").querySelector("[data-namein]")?.value; // a re-render mid-edit keeps what's typed
+  if (all) docList = docsFrom(all);
   $("docList").innerHTML = docList.length ? docList.map((d, i) => `
     <li class="card">
-      <span class="t">${esc(d.title)}</span>
+      ${renaming === d.key
+        ? `<span class="rename"><input data-namein="${i}" value="${esc(d.title)}" maxlength="200" aria-label="New name for this PDF"><button class="btn primary" data-namesave="${i}">Save</button><button class="btn" data-namecancel>Cancel</button></span>`
+        : `<span class="t">${esc(d.title)} <button class="btn link ren" data-rename="${i}" title="Rename this PDF" aria-label="Rename ${esc(d.title)}">Rename</button></span>`}
+      ${d.name && renaming !== d.key ? `<span class="m orig">Original name: ${esc(d.original)}</span>` : ""}
       <span class="m">Page ${d.page || 1} of ${d.pages || "?"} · ${fmtTime(d.ms)} reading · last opened ${ago(d.t)}${d.highlights ? ` · ${d.highlights} highlight${d.highlights === 1 ? "" : "s"}` : ""}${d.hasNote ? " · has notes" : ""}${d.url ? "" : " · opened from your computer"}</span>
       <div class="prog"><i style="width:${Math.round(100 * (d.page || 1) / (d.pages || 1))}%"></i></div>
       <span class="acts">
@@ -25,9 +30,27 @@ function renderDocs(all) {
         <button class="btn danger" data-del="${i}" title="Remove from history, including its highlights and notes">Remove</button>
       </span>
     </li>`).join("") : `<li class="empty">No PDFs yet. Open a PDF and it will show up here, with your page, reading time and notes.</li>`;
+  const inp = renaming && $("docList").querySelector("[data-namein]");
+  if (inp) { if (typing !== undefined) inp.value = typing; inp.focus(); if (typing === undefined) inp.select(); }
 }
+async function saveName(i) {
+  const inp = $("docList").querySelector(`[data-namein="${i}"]`);
+  renaming = null;
+  await renameDoc(docList[i].key, inp?.value); // the storage listener re-renders
+  renderDocs();
+}
+$("docList").onkeydown = (e) => {
+  const inp = e.target.closest("[data-namein]");
+  if (!inp) return;
+  if (e.key === "Enter") saveName(+inp.dataset.namein);
+  if (e.key === "Escape") { renaming = null; renderDocs(); }
+};
 $("docList").onclick = async (e) => {
   const o = e.target.closest("[data-open]"), d = e.target.closest("[data-del]");
+  const rn = e.target.closest("[data-rename]"), sv = e.target.closest("[data-namesave]");
+  if (rn) { renaming = docList[+rn.dataset.rename].key; renderDocs(); }
+  if (sv) saveName(+sv.dataset.namesave);
+  if (e.target.closest("[data-namecancel]")) { renaming = null; renderDocs(); }
   if (o) openDoc(docList[+o.dataset.open]);
   if (d) {
     const doc = docList[+d.dataset.del];

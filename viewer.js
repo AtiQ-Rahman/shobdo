@@ -1,7 +1,7 @@
 import * as pdfjsLib from "./lib/pdf.min.mjs";
 import { initAnnotations } from "./annotations.js";
 import { buildAnnotatedPdf } from "./pdfexport.js";
-import { watchTextSize } from "./shared.js";
+import { watchTextSize, renameDoc } from "./shared.js";
 watchTextSize();
 globalThis.pdfjsLib = pdfjsLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./lib/pdf.worker.min.mjs";
@@ -104,6 +104,38 @@ $("wordsBtn").onclick = () => openSide("words");
 for (const t of document.querySelectorAll("#side [role=tab]")) t.onclick = () => openSide(t.dataset.pane);
 document.querySelector("#side .close").onclick = () => openSide(null);
 
+// ---------- rename (click the title) ----------
+function showName() {
+  const n = record?.name || record?.title || "";
+  $("title").textContent = n;
+  document.title = n + " — Shobdo";
+  if (window.BPD_CTX) window.BPD_CTX.title = n; // words saved from now on show the new name
+  notes.setTitle(n);
+}
+function startRename() {
+  if (!docKey) return;
+  const inp = $("titleInput");
+  inp.value = $("title").textContent;
+  $("title").hidden = true; inp.hidden = false; inp.focus(); inp.select();
+}
+async function endRename(save) {
+  const inp = $("titleInput");
+  if (inp.hidden) return;
+  inp.hidden = true; $("title").hidden = false;
+  if (save && docKey) await renameDoc(docKey, inp.value); // the storage listener updates the title
+}
+$("title").onclick = startRename;
+$("title").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startRename(); } };
+$("titleInput").onkeydown = (e) => { if (e.key === "Enter") endRename(true); if (e.key === "Escape") endRename(false); };
+$("titleInput").onblur = () => endRename(true);
+chrome.storage.onChanged.addListener((c) => {
+  if (!docKey || !record || !c[docKey]) return;
+  const n = c[docKey].newValue?.name;
+  if (n === record.name) return;
+  if (n) record.name = n; else delete record.name;
+  showName();
+});
+
 function status(msg) { $("status").textContent = msg || ""; }
 
 // ---------- opening ----------
@@ -124,15 +156,14 @@ async function openData(data, name, url) {
     await store.set({ [docKey]: record });
     resumePage = record.page || 1;
 
-    window.BPD_CTX = { title, url: url || "", docKey };
+    window.BPD_CTX = { title: record.name || title, url: url || "", docKey };
     viewer.setDocument(doc);
     linkService.setDocument(doc);
     $("pageCount").textContent = doc.numPages;
-    $("title").textContent = title;
-    document.title = title + " — Shobdo";
+    showName();
     $("timer").hidden = false;
     updateTimer();
-    await notes.setDocument(doc.fingerprints[0], title);
+    await notes.setDocument(doc.fingerprints[0], record.name || title);
     status("");
     scanDocument(doc);
   } catch (e) {
@@ -225,7 +256,9 @@ async function flush() {
   const got = await store.get([day, docKey]);
   const d = got[day] || { ms: 0, n: 0 };
   d.ms += add;
+  const name = got[docKey]?.name; // it may have been renamed in the Library meanwhile
   const r = Object.assign(got[docKey] || {}, record, { ms: (got[docKey]?.ms ?? record.ms) + add, t: Date.now() });
+  if (name) r.name = name; else delete r.name;
   record = r;
   await store.set({ [day]: d, [docKey]: r });
 }

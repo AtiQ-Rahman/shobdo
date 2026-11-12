@@ -12,8 +12,13 @@ h2 { font-size: 1rem; margin: 24px 0 8px; color: var(--muted); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: start; }
 .card .t { font-weight: 600; font-size: 1.071rem; overflow-wrap: anywhere; }
 .card .m { font-size: 0.929rem; color: var(--muted); }
-.card .acts { display: flex; gap: 6px; grid-row: 1 / span 3; grid-column: 2; align-self: center; }
+.card .acts { display: flex; gap: 6px; grid-row: 1 / span 4; grid-column: 2; align-self: center; }
 .card .prog { grid-column: 1; margin-top: 4px; max-width: 360px; }
+.card .ren { margin-left: 6px; font-size: 0.857rem; font-weight: 600; opacity: .8; }
+.card .ren:hover { opacity: 1; text-decoration: underline; }
+.card .orig { font-size: 0.857rem; }
+.rename { display: flex; gap: 6px; flex-wrap: wrap; }
+.rename input { flex: 1; min-width: 12rem; border: 1px solid var(--green); border-radius: 6px; padding: 4px 8px; background: var(--surface); font-weight: 600; }
 .empty { color: var(--muted); padding: 24px 0; }
 
 .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }

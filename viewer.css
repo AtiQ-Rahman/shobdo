@@ -17,6 +17,9 @@ button, input, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
 .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 32vw; font-weight: 600; }
 .spacer { flex: 1; }
+.title[role="button"] { cursor: text; border-radius: 4px; padding: 2px 4px; }
+.title[role="button"]:hover { background: var(--tint); }
+.title-in { width: 32vw; min-width: 10rem; padding: 3px 6px; border: 1px solid var(--green); border-radius: 6px; background: transparent; font-weight: 600; }
 .group { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .of { color: var(--muted); }
 #pageInput { width: 56px; padding: 3px 4px; border: 1px solid var(--line); border-radius: 6px; background: transparent; }

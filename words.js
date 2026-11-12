@@ -16,6 +16,35 @@
     return v;
   }
 
+  // Word family: "intimidate", "intimidation", "intimidating" all reduce to "intimid".
+  // Conservative: the stem must keep at least 5 letters, so short words (mention/mentor, state) stay apart.
+  const SUF = ["ations", "itions", "ation", "ition", "ments", "ingly", "ively", "ities", "ating", "ated", "ates", "ions",
+    "ment", "ness", "ings", "ers", "ors", "ive", "ion", "ing", "ate", "ity", "edly", "ed", "er", "or", "es", "ly", "s"];
+  function stem(t) {
+    if (t.length < 6) return t;
+    let s = t;
+    for (const suf of SUF) if (s.endsWith(suf) && s.length - suf.length >= 5) { s = s.slice(0, -suf.length); break; }
+    if (s.endsWith("e") && s.length > 5) s = s.slice(0, -1);
+    if (s.endsWith("i") && s.length >= 5) s = s.slice(0, -1) + "y";
+    if (/([b-df-hj-np-tv-z])\1$/.test(s)) s = s.slice(0, -1);
+    return s;
+  }
+
+  // stem -> entry, rebuilt after the map changes
+  const stems = new WeakMap();
+  function stemIndex(map) {
+    let idx = stems.get(map);
+    if (idx) return idx;
+    idx = new Map();
+    for (const [f, e] of map) {
+      if (!/^[a-z]/.test(f)) continue;
+      const k = stem(f), old = idx.get(k);
+      if (!old || (e.saved && !old.saved)) idx.set(k, e);
+    }
+    stems.set(map, idx);
+    return idx;
+  }
+
   // form -> { key, word, meaning, def, saved, session }
   // Only saved words come from storage; words looked up during this visit are added with add().
   async function load() {
@@ -31,6 +60,7 @@
   }
 
   function add(map, { word, forms = [], meaning = "", def = "", saved = false }) {
+    stems.delete(map);
     const key = word.toLowerCase();
     const old = [...map.values()].find((e) => e.key === key);
     if (old && (old.saved || !saved)) { // keep the saved entry; just learn new forms
@@ -50,8 +80,9 @@
   function match(map, token) {
     const t = token.toLowerCase();
     if (map.has(t)) return map.get(t);
-    if (/^[a-z]/.test(t)) for (const v of variants(t)) if (map.has(v)) return map.get(v);
-    return null;
+    if (!/^[a-z]/.test(t)) return null;
+    for (const v of variants(t)) if (map.has(v)) return map.get(v);
+    return stemIndex(map).get(stem(t)) || null;
   }
 
   // -> Map key -> { word, meaning, saved, count, forms:Set, pages:Set }

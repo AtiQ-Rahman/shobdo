@@ -22,8 +22,16 @@ export async function docs() {
 }
 export function docsFrom(all) {
   return Object.entries(all).filter(([k]) => k.startsWith("doc:")).map(([k, v]) => ({
-    key: k, ...v, highlights: all["ann:" + k.slice(4)]?.items?.length || 0, hasNote: !!all["ann:" + k.slice(4)]?.note
+    key: k, ...v, title: v.name || v.title, original: v.title, highlights: all["ann:" + k.slice(4)]?.items?.length || 0, hasNote: !!all["ann:" + k.slice(4)]?.note
   })).sort((a, b) => (b.t || 0) - (a.t || 0));
+}
+// Your own name for a PDF (stored as "name"; the PDF's own title stays in "title"). Empty = back to the original.
+export async function renameDoc(key, name) {
+  const cur = (await store.get(key))[key];
+  if (!cur) return;
+  const n = String(name || "").replace(/\s+/g, " ").trim().slice(0, 200);
+  if (n && n !== cur.title) cur.name = n; else delete cur.name;
+  await store.set({ [key]: cur });
 }
 export function openDoc(d, newTab = true) {
   const url = VIEWER + (d.url ? "?file=" + d.url : "");

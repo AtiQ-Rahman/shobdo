@@ -11,7 +11,8 @@
   <header id="bar">
     <button id="openBtn" class="primary" title="Open a PDF from your computer">Open PDF</button>
     <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
-    <span id="title" class="title"></span>
+    <span id="title" class="title" role="button" tabindex="0" title="Click to rename this PDF"></span>
+    <input id="titleInput" class="title-in" maxlength="200" hidden aria-label="New name for this PDF" title="Enter to save, Esc to cancel. Leave empty to go back to the original name.">
     <span class="spacer"></span>
     <span id="timer" class="timer" hidden title="Time spent reading this PDF. Pauses when you switch tabs or stop scrolling for 2 minutes.">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>

@@ -18,7 +18,7 @@ with sync_playwright() as p:
         sys.exit()
     n = int(TL["total"] * FPS)
     ff = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "image2pipe", "-framerate", str(FPS), "-c:v", "mjpeg", "-i", "-",
-        "-i", "audio/mix.wav", "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+        "-i", "audio/mix.wav", "-c:v", "libx264", "-preset", "slow", "-crf", "27", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
         "-c:a", "aac", "-b:a", "160k", "-shortest", out], stdin=subprocess.PIPE)
     for i in range(n):
         pg.evaluate(f"setTime({i / FPS})")

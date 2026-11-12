@@ -105,6 +105,19 @@ def main():
         pg.mouse.click(W - 95, H - 34); pg.wait_for_timeout(600)
         shot(pg, "web_chip_open")
 
+        # ---------- 3b. save the page (button at the bottom of the open panel), name it in the "Saved" message ----------
+        # The panel lives in a closed shadow root, so its button is found by position: panel bottom-right, above the chip.
+        meta["save_btn"] = {"x": W - 16 - 171, "y": H - 16 - 34 - 8 - 25}
+        pg.mouse.move(meta["save_btn"]["x"], meta["save_btn"]["y"]); pg.wait_for_timeout(300)
+        shot(pg, "web_save_hover")
+        pg.mouse.click(meta["save_btn"]["x"], meta["save_btn"]["y"]); pg.wait_for_timeout(2500)
+        shot(pg, "web_saved")
+        meta["toast_name"] = {"x": W / 2 + 30, "y": H - 24 - 21}
+        pg.mouse.click(meta["toast_name"]["x"], meta["toast_name"]["y"]); pg.wait_for_timeout(200)
+        pg.keyboard.press("Control+A"); pg.keyboard.type("Reading slowly")
+        shot(pg, "web_saved_named")
+        pg.keyboard.press("Enter"); pg.wait_for_timeout(600)
+
         # ---------- 4. PDF reader ----------
         v = ctx.new_page()
         v.goto(base + "viewer.html?file=" + SITE + "article.pdf")
@@ -160,6 +173,32 @@ def main():
           for (const [k, d] of Object.entries(all)) if (k.startsWith('doc:')) { d.ms = 47 * 60000; d.page = 2; await chrome.storage.local.set({[k]: d}); } }""")
         v.wait_for_timeout(500)
 
+        # ---------- 4b. the saved copy in the page reader ----------
+        lib = ctx.new_page(); lib.goto(base + "library.html"); lib.wait_for_timeout(300)
+        pid = lib.evaluate("async () => Object.keys(await chrome.storage.local.get(null)).find(k => k.startsWith('page:')).slice(5)")
+        lib.close()
+        rd = ctx.new_page(); rd.goto(base + "reader.html?id=" + pid); rd.wait_for_timeout(1500)
+        for text, color, note in [("Slow reading is not a lack of skill.", 0, ""), ("test yourself before you peek at the meaning", 2, "Try this with Revise → fill in the blank")]:
+            rd.evaluate("""([text, color, note]) => {
+              const c = document.getElementById('content'), w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+              let all = '', map = []; while (w.nextNode()) { map.push([w.currentNode, all.length]); all += w.currentNode.data; }
+              const i = all.indexOf(text); if (i < 0) return;
+              const at = (pos) => { for (let k = map.length - 1; k >= 0; k--) if (map[k][1] <= pos) return [map[k][0], pos - map[k][1]]; };
+              const a = at(i), b = at(i + text.length - 1), r = document.createRange(); r.setStart(a[0], a[1]); r.setEnd(b[0], b[1] + 1);
+              window.BPD_SELECTION_EXTRAS(r)[note ? 4 : color].onClick(); // 4 = "Note": highlight and open the note box
+            }""", [text, color, note])
+            if note:
+                rd.wait_for_timeout(400); rd.fill(".bpd-editor textarea", note)
+                rd.locator(".bpd-editor .sw").nth(color).click(); rd.click(".bpd-editor .done")
+        rd.wait_for_timeout(400)
+        shot(rd, "reader_plain")
+        meta["reader_notes"] = box(rd, "#notesBtn")
+        rd.click("#notesBtn"); rd.wait_for_timeout(700)
+        shot(rd, "reader_notes")
+        meta["reader_words"] = box(rd, "#side [data-pane=words]")
+        rd.click("#side [data-pane=words]"); rd.wait_for_timeout(700)
+        shot(rd, "reader_words")
+
         # ---------- 5. Library ----------
         lib = ctx.new_page()
         for tab in ["pdfs", "words", "revise", "time"]:
@@ -169,7 +208,9 @@ def main():
         meta["recall"] = box(lib, "#recallToggle")
         lib.click("#recallToggle"); lib.wait_for_timeout(800)
         shot(lib, "lib_words_recall")
-        lib.goto(base + "library.html#revise"); lib.wait_for_timeout(800)
+        lib.evaluate("() => chrome.storage.local.set({ rvPrefs: { pool: 'src', count: 10, order: 'random', dir: 'cloze' } })")
+        lib.goto(base + "library.html#revise"); lib.wait_for_timeout(1000)
+        shot(lib, "lib_revise")
         btn = lib.query_selector("#revise button.primary")
         meta["revise_start"] = box(lib, "#revise button.primary")
         if btn: btn.click(); lib.wait_for_timeout(900); shot(lib, "lib_revise_card")

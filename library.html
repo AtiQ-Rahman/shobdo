@@ -14,8 +14,10 @@
       <nav role="tablist">
         <a role="tab" href="#pdfs" data-tab="pdfs">PDFs</a>
         <a role="tab" href="#words" data-tab="words">My words <span id="wordCount" class="muted"></span></a>
+        <a role="tab" href="#revise" data-tab="revise">Revise</a>
         <a role="tab" href="#time" data-tab="time">Reading time</a>
         <a role="tab" href="#backup" data-tab="backup">Backup</a>
+        <a role="tab" href="#settings" data-tab="settings">Settings</a>
       </nav>
     </div>
   </header>
@@ -27,9 +29,59 @@
     <section id="words" hidden>
       <div class="toolbar">
         <input id="q" type="search" placeholder="Search words or meanings" aria-label="Search saved words">
+        <label class="recall" title="Hide meanings so you can test yourself. Click a hidden meaning to check it."><input type="checkbox" id="recallToggle"> Recall mode</label>
+        <button id="showAll" class="btn" hidden>Show all</button>
+        <span class="stepper fs" role="group" aria-label="Text size"><button class="btn" data-fs="-1" title="Smaller text" aria-label="Smaller text">A−</button><button class="btn" data-fs="1" title="Bigger text" aria-label="Bigger text">A+</button></span>
         <button id="csv" class="btn" title="Two columns (word, meaning + definition + sentence) — import into Anki or a spreadsheet">Export for Anki (CSV)</button>
       </div>
       <ul id="wordList" class="cards"></ul>
+    </section>
+
+    <section id="revise" hidden>
+      <div id="rvSetup" class="panel rv-setup">
+        <h2>Revise your words</h2>
+        <p class="muted">Pick some words, try to remember each one, then check yourself. Shobdo remembers which ones you miss.</p>
+        <fieldset id="rvPool"><legend>Which words</legend>
+          <label><input type="radio" name="rvPool" value="d7"> Saved in the last 7 days <span class="muted" data-n="d7"></span></label>
+          <label><input type="radio" name="rvPool" value="d30"> Saved in the last 30 days <span class="muted" data-n="d30"></span></label>
+          <label><input type="radio" name="rvPool" value="all"> All my words <span class="muted" data-n="all"></span></label>
+          <label><input type="radio" name="rvPool" value="missed"> Ones I got wrong last time <span class="muted" data-n="missed"></span></label>
+        </fieldset>
+        <fieldset id="rvCount" class="inline"><legend>How many</legend>
+          <label><input type="radio" name="rvCount" value="10"> 10</label>
+          <label><input type="radio" name="rvCount" value="20"> 20</label>
+          <label><input type="radio" name="rvCount" value="0"> All</label>
+        </fieldset>
+        <fieldset id="rvOrder" class="inline"><legend>Order</legend>
+          <label><input type="radio" name="rvOrder" value="random"> Random</label>
+          <label><input type="radio" name="rvOrder" value="newest"> Newest first</label>
+          <label><input type="radio" name="rvOrder" value="hardest"> Hardest first</label>
+        </fieldset>
+        <fieldset id="rvDir"><legend>Show me</legend>
+          <label><input type="radio" name="rvDir" value="word"> The word, and I recall its meaning</label>
+          <label><input type="radio" name="rvDir" value="meaning"> The meaning, and I recall the word</label>
+        </fieldset>
+        <div class="rv-go"><button id="rvStart" class="btn primary">Start</button><span id="rvInfo" class="muted"></span></div>
+      </div>
+
+      <div id="rvCard" class="rv-card" hidden>
+        <div class="rv-top"><span id="rvProg" class="muted"></span>
+          <span class="rv-tools"><span class="stepper fs" role="group" aria-label="Text size"><button class="btn" data-fs="-1" title="Smaller text" aria-label="Smaller text">A−</button><button class="btn" data-fs="1" title="Bigger text" aria-label="Bigger text">A+</button></span><button id="rvQuit" class="btn">End round</button></span></div>
+        <div class="prog"><i id="rvBar"></i></div>
+        <div class="rv-body">
+          <div id="rvQ" class="rv-q"></div>
+          <div id="rvA" class="rv-a" hidden></div>
+        </div>
+        <div class="rv-btns">
+          <button id="rvShow" class="btn primary">Show answer <kbd>Space</kbd></button>
+          <span id="rvJudge" hidden>
+            <button id="rvNo" class="btn rv-no">✗ Didn't know <kbd>1</kbd></button>
+            <button id="rvYes" class="btn primary">✓ Knew it <kbd>2</kbd></button>
+          </span>
+        </div>
+      </div>
+
+      <div id="rvDone" class="panel rv-done" hidden></div>
     </section>
 
     <section id="time" hidden>
@@ -62,6 +114,46 @@
           <button id="cancelRestore" class="btn">Cancel</button>
         </div>
         <p id="restoreStatus" role="status"></p>
+      </div>
+    </section>
+    <section id="settings" hidden>
+      <div class="panel">
+        <h2>Text size</h2>
+        <fieldset id="s-uiFs" class="inline">
+          <legend>Size of text in the Library, the PDF reader and the website panel</legend>
+        </fieldset>
+        <p class="muted hint">The A− / A+ buttons in My words, Revise and the reader's side panel make those lists bigger or smaller on top of this.</p>
+      </div>
+      <div class="panel">
+        <h2>Reading</h2>
+        <label class="switch">Open .pdf links in the Shobdo reader <input id="s-autoOpen" type="checkbox"></label>
+        <label class="switch">Underline my saved words in PDFs <input id="s-markSeen" type="checkbox"></label>
+        <label class="switch">Show the “my words” button on websites <input id="s-siteBadge" type="checkbox"></label>
+      </div>
+      <div class="panel">
+        <h2>Practice</h2>
+        <label class="switch"><span>Recall mode <span class="muted hint">Hide meanings in word lists until you click them, so you test yourself first.</span></span> <input id="s-recall" type="checkbox"></label>
+      </div>
+      <div class="panel">
+        <h2>Highlights</h2>
+        <fieldset id="s-hlAlpha">
+          <legend>Highlight strength (in the reader and in downloaded PDFs)</legend>
+          <label><input type="radio" name="hlAlpha" value="0.25"> <span class="hlprev" style="--a:.25">Light</span></label>
+          <label><input type="radio" name="hlAlpha" value="0.4"> <span class="hlprev" style="--a:.4">Medium</span></label>
+          <label><input type="radio" name="hlAlpha" value="0.6"> <span class="hlprev" style="--a:.6">Strong</span></label>
+        </fieldset>
+      </div>
+      <div class="panel">
+        <h2>My words &amp; Revise</h2>
+        <div class="setrow"><span>Text size</span>
+          <span class="stepper"><button class="btn" data-fs="-1" aria-label="Smaller text">A−</button><output id="s-wfs">100%</output><button class="btn" data-fs="1" aria-label="Bigger text">A+</button></span></div>
+      </div>
+      <div class="panel">
+        <h2>Reader side panel</h2>
+        <div class="setrow"><span>Text size</span>
+          <span class="stepper"><button id="s-fsDown" class="btn" aria-label="Smaller text">A−</button><output id="s-fs">100%</output><button id="s-fsUp" class="btn" aria-label="Bigger text">A+</button></span></div>
+        <div class="setrow"><span>Width <span class="muted hint">Drag the panel's left edge in the reader to change it.</span></span>
+          <button id="s-wReset" class="btn">Reset width</button></div>
       </div>
     </section>
   </main>

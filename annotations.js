@@ -74,9 +74,12 @@ export function initAnnotations({ viewer, eventBus, container, side, countEl }) 
   }
 
   // ---------- create ----------
-  function create(range, color, withNote) {
-    const text = range.toString().replace(/\s+/g, " ").trim();
-    const byPage = rangeToRects(range);
+  // snap = { text, byPage }, taken when the text was selected. Taken up front because the reader re-marks the
+  // text layer (underlining your words) right after a lookup, which detaches the selection's text nodes.
+  function snapshot(range) {
+    return { text: range.toString().replace(/\s+/g, " ").trim(), byPage: rangeToRects(range) };
+  }
+  function create({ text, byPage }, color, withNote) {
     if (!byPage.size) return;
     let first = null;
     for (const [page, rects] of byPage) {
@@ -94,10 +97,11 @@ export function initAnnotations({ viewer, eventBus, container, side, countEl }) 
     const n = range.commonAncestorContainer;
     const el = n.nodeType === 1 ? n : n.parentElement;
     if (!key || !el?.closest(".pdfViewer")) return [];
-    const r = range.cloneRange();
+    const snap = snapshot(range);
+    if (!snap.byPage.size) return [];
     return [
-      ...COLORS.map((x) => ({ cls: "dot", title: "Highlight " + x.name.toLowerCase(), html: `<i style="background:${x.c}"></i>`, onClick: () => create(r, x.c) })),
-      { cls: "note", title: "Highlight and add a note", html: "Note", onClick: () => create(r, COLORS[0].c, true) }
+      ...COLORS.map((x) => ({ cls: "dot", title: "Highlight " + x.name.toLowerCase(), html: `<i style="background:${x.c}"></i>`, onClick: () => create(snap, x.c) })),
+      { cls: "note", title: "Highlight and add a note", html: "Note", onClick: () => create(snap, COLORS[0].c, true) }
     ];
   };
 

@@ -1,6 +1,8 @@
 import * as pdfjsLib from "./lib/pdf.min.mjs";
 import { initAnnotations } from "./annotations.js";
 import { buildAnnotatedPdf } from "./pdfexport.js";
+import { watchTextSize } from "./shared.js";
+watchTextSize();
 globalThis.pdfjsLib = pdfjsLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./lib/pdf.worker.min.mjs";
 const { EventBus, PDFLinkService, PDFViewer } = await import("./lib/pdf_viewer.mjs");
@@ -44,6 +46,59 @@ function openSide(pane) {
   $("paneWords").hidden = pane !== "words";
   setTimeout(() => { if (viewer.currentScaleValue === "page-width") viewer.currentScaleValue = "page-width"; }, 0);
 }
+// Panel width (drag the left edge) and text size (A− / A+), remembered across PDFs.
+const SIDE_MIN = 260, FS_MIN = 12, FS_MAX = 24;
+let sideW = null, sideFs = 14; // sideW null = default width, which grows with the text size
+const sideMax = () => Math.max(SIDE_MIN, Math.round(innerWidth * 0.7));
+function applySide() {
+  if (sideW != null) sideW = Math.min(Math.max(SIDE_MIN, Math.round(sideW)), sideMax());
+  document.documentElement.style.setProperty("--side-w", sideW != null ? sideW + "px" : "20rem");
+  document.documentElement.style.setProperty("--side-scale", sideFs / 14); // 14 = same as the rest of the app
+  $("fontDown").disabled = sideFs <= FS_MIN;
+  $("fontUp").disabled = sideFs >= FS_MAX;
+  const h = $("sideResize");
+  h.setAttribute("aria-valuemin", SIDE_MIN); h.setAttribute("aria-valuemax", sideMax()); h.setAttribute("aria-valuenow", sideW ?? ($("side").offsetWidth || 320));
+}
+function refit() { if (viewer.currentScaleValue === "page-width") viewer.currentScaleValue = "page-width"; }
+function saveSide() { store.set(sideW != null ? { sideW, sideFs } : { sideFs }); }
+let hlAlpha = 0.4; // highlight strength, set in Settings
+function loadLook(r) {
+  if ("sideW" in r) sideW = r.sideW || null;
+  if ("sideFs" in r) sideFs = r.sideFs || 14;
+  if ("hlAlpha" in r) { hlAlpha = r.hlAlpha || 0.4; document.documentElement.style.setProperty("--hl-alpha", hlAlpha); }
+  applySide();
+}
+store.get(["sideW", "sideFs", "hlAlpha"]).then(loadLook);
+// Settings changed in the Library (or another reader tab): apply right away.
+chrome.storage.onChanged.addListener((c) => {
+  const r = {};
+  for (const k of ["sideW", "sideFs", "hlAlpha"]) if (k in c) r[k] = c[k].newValue;
+  if (Object.keys(r).length) { loadLook(r); if ("sideW" in r) refit(); }
+});
+applySide();
+$("fontDown").onclick = () => { sideFs = Math.max(FS_MIN, sideFs - 1); applySide(); saveSide(); };
+$("fontUp").onclick = () => { sideFs = Math.min(FS_MAX, sideFs + 1); applySide(); saveSide(); };
+$("sideResize").addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  const h = e.currentTarget;
+  h.setPointerCapture(e.pointerId);
+  h.classList.add("drag"); document.body.classList.add("resizing");
+  const move = (ev) => { sideW = innerWidth - ev.clientX; applySide(); };
+  const up = () => {
+    h.removeEventListener("pointermove", move); h.removeEventListener("pointerup", up); h.removeEventListener("pointercancel", up);
+    h.classList.remove("drag"); document.body.classList.remove("resizing");
+    saveSide(); refit();
+  };
+  h.addEventListener("pointermove", move); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
+});
+$("sideResize").addEventListener("keydown", (e) => {
+  const step = e.shiftKey ? 80 : 20;
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  sideW = (sideW ?? $("side").offsetWidth) + (e.key === "ArrowLeft" ? step : -step);
+  e.preventDefault(); applySide(); saveSide(); refit();
+});
+addEventListener("resize", applySide);
+
 $("notesBtn").onclick = () => openSide("notes");
 $("wordsBtn").onclick = () => openSide("words");
 for (const t of document.querySelectorAll("#side [role=tab]")) t.onclick = () => openSide(t.dataset.pane);
@@ -251,6 +306,20 @@ async function scanDocument(d) {
   renderWordList();
 }
 
+// Recall mode: meanings stay hidden until you click them, so you can test yourself first.
+let recall = false;
+const revealed = new Set();
+function setRecall(on) {
+  recall = on;
+  revealed.clear();
+  $("recallToggle").checked = on;
+  $("showAll").hidden = !on;
+  if (pageTexts.length) renderWordList();
+}
+$("recallToggle").onchange = (e) => { setRecall(e.target.checked); store.set({ recall: recall }); };
+$("showAll").onclick = () => { for (const w of found) revealed.add(w.key); renderWordList(); };
+store.get("recall").then((r) => setRecall(r.recall !== false)); // on unless turned off
+
 let found = [];
 function renderWordList() {
   const map = new Map();
@@ -259,12 +328,13 @@ function renderWordList() {
   $("wordCount").textContent = found.length ? String(found.length) : "";
   $("wordList").innerHTML = found.length ? found.map((w, i) => {
     const pages = [...w.pages];
+    const meaning = (w.meaning ? `<span class="m">${escapeHtml(w.meaning)}</span>` : "") + (w.def ? `<span class="d">${escapeHtml(w.def)}</span>` : "");
+    const hide = recall && meaning && !revealed.has(w.key);
     return `<li><button data-i="${i}">
       <span class="w${w.saved ? " saved" : " now"}">${escapeHtml(w.word)}</span><span class="c">${w.count}×</span>
-      ${w.meaning ? `<span class="m">${escapeHtml(w.meaning)}</span>` : ""}
-      ${w.def ? `<span class="d">${escapeHtml(w.def)}</span>` : ""}
+      ${hide ? "" : meaning}
       <span class="p">Page${pages.length > 1 ? "s" : ""} ${pages.slice(0, 8).join(", ")}${pages.length > 8 ? "…" : ""}</span>
-    </button></li>`;
+    </button>${hide ? `<button class="reveal" data-k="${escapeHtml(w.key)}" title="Click to show the meaning" aria-label="Show the meaning of ${escapeHtml(w.word)}"><span class="blur" aria-hidden="true">${meaning}</span></button>` : ""}</li>`;
   }).join("") : `<li class="empty">None of your saved words are in this PDF. Words you look up while reading will appear here too.</li>`;
 }
 const escapeHtml = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -272,6 +342,8 @@ const escapeHtml = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&am
 // Click a word: jump to its next occurrence (clicking again moves on to the next page that has it).
 const nextHit = new Map();
 $("wordList").addEventListener("click", async (e) => {
+  const r = e.target.closest("button[data-k]");
+  if (r) { revealed.add(r.dataset.k); renderWordList(); return; }
   const b = e.target.closest("button[data-i]");
   if (!b) return;
   const w = found[+b.dataset.i];
@@ -310,6 +382,7 @@ async function revealWord(w, page) {
 eventBus.on("textlayerrendered", (e) => mark(viewer.getPageView(e.pageNumber - 1)?.textLayer?.div));
 let markTimer = 0;
 chrome.storage.onChanged.addListener((c) => {
+  if (c.recall && (c.recall.newValue !== false) !== recall) setRecall(c.recall.newValue !== false);
   if (!Object.keys(c).some((k) => k.startsWith("v:") || k === "markSeen")) return;
   clearTimeout(markTimer);
   markTimer = setTimeout(async () => { await loadWords(); markAll(); if (pageTexts.length) renderWordList(); }, 300);
@@ -324,7 +397,7 @@ $("downloadPdf").onclick = async () => {
   if (!data.items.length && !data.note) { st.textContent = "Nothing to add yet. Highlight some text first."; return; }
   btn.disabled = true; st.textContent = "Preparing your copy…";
   try {
-    const bytes = await buildAnnotatedPdf(original, doc, data);
+    const bytes = await buildAnnotatedPdf(original, doc, data, undefined, hlAlpha);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
     a.download = ($("title").textContent || "document").replace(/[\\/:*?"<>|]+/g, " ").trim() + " - highlighted.pdf";

@@ -29,3 +29,12 @@ export function openDoc(d, newTab = true) {
   const url = VIEWER + (d.url ? "?file=" + d.url : "");
   return newTab ? chrome.tabs.create({ url }) : chrome.tabs.update({ url });
 }
+
+// Global text size (Settings → Text size). Every page sizes its text in rem, so setting the root font size scales it all.
+export const TEXT_SIZES = [[14, "Small"], [16, "Medium"], [18, "Large"], [20, "Extra large"]];
+export const DEFAULT_UI_FS = 16;
+export function watchTextSize() {
+  const apply = (v) => document.documentElement.style.setProperty("--ui-fs", (v || DEFAULT_UI_FS) + "px");
+  store.get("uiFs").then((r) => apply(r.uiFs));
+  chrome.storage.onChanged.addListener((c) => { if (c.uiFs) apply(c.uiFs.newValue); });
+}

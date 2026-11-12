@@ -1,4 +1,5 @@
-import { store, esc, dayKey, fmtTime, ago, docsFrom, openDoc } from "./shared.js";
+import { store, esc, dayKey, fmtTime, ago, docsFrom, openDoc, watchTextSize, TEXT_SIZES, DEFAULT_UI_FS } from "./shared.js";
+watchTextSize();
 const $ = (id) => document.getElementById(id);
 
 // ---------- tabs ----------
@@ -37,8 +38,19 @@ $("docList").onclick = async (e) => {
 
 // ---------- My words ----------
 let words = [];
+// Recall mode: meanings stay hidden until clicked, so you can test yourself first.
+let recall = false;
+const revealed = new Set();
+$("recallToggle").onchange = (e) => store.set({ recall: e.target.checked }); // the storage listener re-renders
+$("showAll").onclick = () => { for (const w of words) revealed.add(w.key); renderWords(); };
 function loadWords(all) {
+  if ((all.recall !== false) !== recall) { recall = all.recall !== false; revealed.clear(); } // on unless turned off
+  $("recallToggle").checked = recall;
+  $("showAll").hidden = !recall;
   words = Object.entries(all).filter(([k]) => k.startsWith("v:")).map(([k, v]) => ({ key: k, ...v })).sort((a, b) => b.t - a.t);
+  rv = {};
+  for (const w of words) if (all["r" + w.key]) rv[w.key] = all["r" + w.key];
+  renderReviseSetup();
   $("wordCount").textContent = words.length ? `(${words.length})` : "";
   renderWords();
 }
@@ -48,22 +60,28 @@ function sentenceHtml(w) {
   if (i < 0) return esc(w.sentence);
   return esc(w.sentence.slice(0, i)) + `<mark>${esc(w.sentence.slice(i, i + w.w.length))}</mark>` + esc(w.sentence.slice(i + w.w.length));
 }
+const bnHtml = (w) => `<span class="bn">${esc(w.meaning)}</span>${w.more?.length > 1 ? `<span class="bn muted">${esc(w.more.filter((x) => x !== w.meaning).slice(0, 4).join(", "))}</span>` : ""}`;
+const defHtml = (w) => (w.def ? `<span class="def"><i>${esc(w.pos)}</i>${esc(w.def)}</span>` : "");
 function renderWords() {
   const q = $("q").value.trim().toLowerCase();
   const shown = words.filter((w) => !q || [w.w, w.meaning, w.def, ...(w.more || [])].join(" ").toLowerCase().includes(q));
   $("wordList").innerHTML = shown.length ? shown.map((w) => `
-    <li class="card">
-      <span class="w"><span class="word">${esc(w.w)}</span><span class="bn">${esc(w.meaning)}</span>${w.more?.length > 1 ? `<span class="bn muted">${esc(w.more.filter((x) => x !== w.meaning).slice(0, 4).join(", "))}</span>` : ""}</span>
-      ${w.def ? `<span class="def"><i>${esc(w.pos)}</i>${esc(w.def)}</span>` : ""}
+    <li class="card">${recall && !revealed.has(w.key) ? `
+      <span class="w"><span class="word">${esc(w.w)}</span></span>
+      <button class="reveal" data-k="${esc(w.key)}" title="Click to show the meaning" aria-label="Show the meaning of ${esc(w.w)}"><span class="rv" aria-hidden="true"><span class="w">${bnHtml(w)}</span>${defHtml(w)}</span></button>` : `
+      <span class="w"><span class="word">${esc(w.w)}</span>${bnHtml(w)}</span>
+      ${defHtml(w)}`}
       ${w.sentence ? `<span class="sent">${sentenceHtml(w)}</span>` : ""}
-      <span class="m">${esc(w.src?.title || "")}${w.src?.title ? " · " : ""}saved ${ago(w.t)}</span>
+      <span class="m">${esc(w.src?.title || "")}${w.src?.title ? " · " : ""}saved ${ago(w.t)}${rv[w.key] ? `<span class="stat-rv"> · revised: knew ${rv[w.key].ok || 0}, missed ${rv[w.key].miss || 0}</span>` : ""}</span>
       <span class="acts"><button class="btn danger" data-del="${esc(w.key)}">Remove</button></span>
     </li>`).join("") : `<li class="empty">${words.length ? "No saved word matches your search." : "No saved words yet. Double-click a word and press the bookmark button in its meaning box."}</li>`;
 }
 $("q").oninput = renderWords;
 $("wordList").onclick = async (e) => {
+  const r = e.target.closest("[data-k]");
+  if (r) { revealed.add(r.dataset.k); renderWords(); return; }
   const d = e.target.closest("[data-del]");
-  if (d) await store.remove(d.dataset.del); // the storage listener re-renders
+  if (d) await store.remove([d.dataset.del, "r" + d.dataset.del]); // the word and its revise record; the storage listener re-renders
 };
 $("csv").onclick = () => {
   const cell = (s) => `"${String(s || "").replace(/"/g, '""')}"`;
@@ -160,6 +178,7 @@ function mergeValue(k, mine, theirs) {
   if (mine === undefined) return theirs;
   if (k.startsWith("v:")) return (theirs.t || 0) > (mine.t || 0) ? theirs : mine;
   if (k.startsWith("h:")) return { ...mine, ...theirs, forms: [...new Set([...(mine.forms || []), ...(theirs.forms || [])])], n: Math.max(mine.n || 0, theirs.n || 0), t: Math.max(mine.t || 0, theirs.t || 0), m: mine.m || theirs.m };
+  if (k.startsWith("rv:")) return (theirs.last || 0) > (mine.last || 0) ? theirs : mine;
   if (k.startsWith("day:")) return { ms: Math.max(mine.ms || 0, theirs.ms || 0), n: Math.max(mine.n || 0, theirs.n || 0) };
   if (k.startsWith("doc:")) {
     const newer = (theirs.t || 0) > (mine.t || 0) ? theirs : mine;
@@ -215,8 +234,190 @@ $("restoreBtn").onclick = async () => {
 // ---------- Rendering ----------
 // One storage read feeds every section that needs updating. Runs are queued one after another, so an
 // older snapshot can never finish last and overwrite a newer one; bursts of writes are batched.
-const ALL = ["docs", "words", "time", "backup"];
-const RENDER = { docs: renderDocs, words: loadWords, time: renderTime, backup: renderBackupSummary };
+// ---------- Text size for My words + Revise ----------
+const WFS_MIN = 12, WFS_MAX = 26;
+let wordsFs = 14;
+function applyWordsFs() {
+  for (const id of ["words", "revise"]) $(id).style.setProperty("--wf", wordsFs / 14);
+  $("s-wfs").textContent = Math.round(wordsFs / 14 * 100) + "%";
+  for (const b of document.querySelectorAll("[data-fs]")) b.disabled = +b.dataset.fs < 0 ? wordsFs <= WFS_MIN : wordsFs >= WFS_MAX;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-fs]");
+  if (b) store.set({ wordsFs: Math.min(WFS_MAX, Math.max(WFS_MIN, wordsFs + +b.dataset.fs)) });
+});
+
+// ---------- Revise ----------
+// Flashcards from your saved words. Each word's record lives in "rv:<lemma>" = { ok, miss, last, lastOk }.
+const DAY = 864e5;
+let rv = {};               // "v:<lemma>" -> revise record
+let round = null;          // { list, i, shown, missed: [], knew: 0, dir }
+let rvPrefs = { pool: "d7", count: 10, order: "random", dir: "word" };
+const SPEAK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>`;
+const isEn = (s) => /^[A-Za-z][A-Za-z'’ -]*$/.test(s || "");
+
+function pools() {
+  const now = Date.now();
+  return {
+    d7: words.filter((w) => now - (w.t || 0) < 7 * DAY),
+    d30: words.filter((w) => now - (w.t || 0) < 30 * DAY),
+    all: words,
+    missed: words.filter((w) => rv[w.key]?.lastOk === false)
+  };
+}
+function renderReviseSetup() {
+  const p = pools();
+  for (const el of document.querySelectorAll("#rvPool [data-n]")) el.textContent = `(${p[el.dataset.n].length})`;
+  for (const [name, v] of [["rvPool", rvPrefs.pool], ["rvCount", String(rvPrefs.count)], ["rvOrder", rvPrefs.order], ["rvDir", rvPrefs.dir]])
+    for (const r of document.querySelectorAll(`input[name=${name}]`)) r.checked = r.value === v;
+  const n = p[rvPrefs.pool].length, take = rvPrefs.count ? Math.min(rvPrefs.count, n) : n;
+  $("rvStart").disabled = !take;
+  $("rvInfo").textContent = !words.length ? "Save some words first: double-click a word and press the bookmark button."
+    : !n ? "No words in this group yet. Pick another one." : `${take} word${take === 1 ? "" : "s"} in this round.`;
+}
+$("rvSetup").addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.name === "rvPool") rvPrefs.pool = t.value;
+  if (t.name === "rvCount") rvPrefs.count = +t.value;
+  if (t.name === "rvOrder") rvPrefs.order = t.value;
+  if (t.name === "rvDir") rvPrefs.dir = t.value;
+  store.set({ rvPrefs });
+  renderReviseSetup();
+});
+
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function pickWords() {
+  let list = shuffle([...pools()[rvPrefs.pool]]); // shuffled first, so ties in the sorts below are random too
+  if (rvPrefs.order === "newest") list.sort((a, b) => (b.t || 0) - (a.t || 0));
+  if (rvPrefs.order === "hardest") {
+    const hard = (w) => { const r = rv[w.key]; return r ? (r.miss || 0) - (r.ok || 0) + (r.lastOk === false ? 2 : 0) : 0.5; };
+    list.sort((a, b) => hard(b) - hard(a));
+  }
+  return rvPrefs.count ? list.slice(0, rvPrefs.count) : list;
+}
+function startRound(list) {
+  if (!list.length) return;
+  round = { list, i: 0, shown: false, missed: [], knew: 0, dir: rvPrefs.dir };
+  $("rvSetup").hidden = true; $("rvDone").hidden = true; $("rvCard").hidden = false;
+  showCard();
+}
+$("rvStart").onclick = () => startRound(pickWords());
+
+function speakBtn(w) { return isEn(w.w) ? `<button class="say" data-say="${esc(w.w)}" title="Pronounce" aria-label="Pronounce ${esc(w.w)}">${SPEAK}</button>` : ""; }
+function showCard() {
+  const w = round.list[round.i], n = round.list.length;
+  $("rvProg").textContent = `${round.i + 1} / ${n}`;
+  $("rvBar").style.width = (100 * round.i / n) + "%";
+  const word = `<span class="big${isEn(w.w) ? "" : " bn"}">${esc(w.w)}${speakBtn(w)}</span>`;
+  const meaning = `<span class="ans bn">${esc(w.meaning)}</span>`;
+  const more = w.more?.length > 1 ? `<span class="bn muted more">${esc(w.more.filter((x) => x !== w.meaning).slice(0, 4).join(", "))}</span>` : "";
+  const sent = w.sentence ? `<span class="sent">${sentenceHtml(w)}</span>` : "";
+  if (round.dir === "word") {
+    $("rvQ").innerHTML = word + sent; // the sentence gives context but not the meaning
+    $("rvA").innerHTML = meaning + more + defHtml(w);
+  } else {
+    $("rvQ").innerHTML = `<span class="big bn">${esc(w.meaning)}</span>` + more + defHtml(w);
+    $("rvA").innerHTML = `<span class="ans">${esc(w.w)}${speakBtn(w)}</span>` + sent;
+  }
+  round.shown = false;
+  $("rvA").hidden = true; $("rvShow").hidden = false; $("rvJudge").hidden = true;
+  $("rvShow").focus({ preventScroll: true });
+}
+function reveal() {
+  if (!round || round.shown) return;
+  round.shown = true;
+  $("rvA").hidden = false; $("rvShow").hidden = true; $("rvJudge").hidden = false;
+  $("rvYes").focus({ preventScroll: true });
+}
+function judge(knew) {
+  if (!round || !round.shown) return;
+  const w = round.list[round.i];
+  const r = { ...(rv[w.key] || {}) };
+  r[knew ? "ok" : "miss"] = (r[knew ? "ok" : "miss"] || 0) + 1;
+  r.last = Date.now(); r.lastOk = knew;
+  rv[w.key] = r;
+  store.set({ ["r" + w.key]: r });
+  if (knew) round.knew++; else round.missed.push(w);
+  round.i++;
+  if (round.i < round.list.length) showCard(); else finish();
+}
+function finish() {
+  const n = round.list.length, m = round.missed;
+  $("rvCard").hidden = true; $("rvDone").hidden = false;
+  $("rvDone").innerHTML = `
+    <h2>${m.length ? "Round done" : "All correct!"}</h2>
+    <p class="score">You knew <b>${round.knew}</b> of ${n}.${m.length === 1 ? " This one needs another look:" : m.length ? ` These ${m.length} need another look:` : ""}</p>
+    ${m.length ? `<ul>${m.map((w) => `<li><b>${esc(w.w)}</b><span class="bn">${esc(w.meaning)}</span>${w.def ? `<span class="def">${esc(w.def)}</span>` : ""}</li>`).join("")}</ul>` : ""}
+    <div class="acts">
+      ${m.length ? `<button class="btn primary" data-rv="again">Revise the ${m.length === 1 ? "missed word" : m.length + " missed words"} again</button>` : ""}
+      <button class="btn${m.length ? "" : " primary"}" data-rv="new">New round</button>
+      <button class="btn" data-rv="setup">Change words</button>
+    </div>`;
+  $("rvDone").querySelector(".btn").focus({ preventScroll: true });
+}
+$("rvDone").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-rv]");
+  if (!b) return;
+  if (b.dataset.rv === "again") startRound(shuffle([...round.missed]));
+  else if (b.dataset.rv === "new") startRound(pickWords());
+  else endRound();
+});
+function endRound() {
+  round = null;
+  $("rvCard").hidden = true; $("rvDone").hidden = true; $("rvSetup").hidden = false;
+  renderReviseSetup();
+}
+$("rvShow").onclick = reveal;
+$("rvYes").onclick = () => judge(true);
+$("rvNo").onclick = () => judge(false);
+$("rvQuit").onclick = () => { if (round && round.i > 0) finishEarly(); else endRound(); };
+function finishEarly() { round.list = round.list.slice(0, round.i); finish(); }
+$("revise").addEventListener("click", (e) => {
+  const s = e.target.closest("[data-say]");
+  if (!s) return;
+  const u = new SpeechSynthesisUtterance(s.dataset.say); u.lang = "en-US";
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+});
+document.addEventListener("keydown", (e) => {
+  if ($("revise").hidden || $("rvCard").hidden || !round || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest("input, textarea")) return;
+  if ((e.key === " " || e.key === "Enter") && !round.shown) { e.preventDefault(); reveal(); }
+  else if (round.shown && (e.key === "2" || e.key === "ArrowRight")) { e.preventDefault(); judge(true); }
+  else if (round.shown && (e.key === "1" || e.key === "ArrowLeft")) { e.preventDefault(); judge(false); }
+  else if (e.key === "Escape") $("rvQuit").click();
+});
+
+// ---------- Settings ----------
+// Every setting lives in chrome.storage.local; the reader, websites and popup all listen for changes.
+const SETTINGS = ["uiFs", "autoOpen", "markSeen", "siteBadge", "recall", "hlAlpha", "sideFs", "sideW", "wordsFs", "rvPrefs"];
+const FS_MIN = 12, FS_MAX = 24;
+let sideFs = 14;
+function renderSettings(all) {
+  for (const k of ["autoOpen", "markSeen", "siteBadge", "recall"]) $("s-" + k).checked = all[k] !== false; // all default on
+  const a = String(all.hlAlpha || 0.4);
+  for (const r of document.querySelectorAll("input[name=hlAlpha]")) r.checked = r.value === a;
+  sideFs = all.sideFs || 14;
+  $("s-fs").textContent = Math.round(sideFs / 14 * 100) + "%";
+  const ui = String(all.uiFs || DEFAULT_UI_FS);
+  for (const r of document.querySelectorAll("input[name=uiFs]")) r.checked = r.value === ui;
+  $("s-fsDown").disabled = sideFs <= FS_MIN;
+  $("s-fsUp").disabled = sideFs >= FS_MAX;
+  $("s-wReset").disabled = !all.sideW;
+  wordsFs = all.wordsFs || 14;
+  applyWordsFs();
+  if (all.rvPrefs) { rvPrefs = { ...rvPrefs, ...all.rvPrefs }; if (!round) renderReviseSetup(); }
+}
+$("s-uiFs").insertAdjacentHTML("beforeend", TEXT_SIZES.map(([px, name]) =>
+  `<label><input type="radio" name="uiFs" value="${px}"> <span style="font-size:${px}px">${name} <span class="bn">অআ</span></span></label>`).join(""));
+$("s-uiFs").onchange = (e) => store.set({ uiFs: +e.target.value });
+for (const k of ["autoOpen", "markSeen", "siteBadge", "recall"]) $("s-" + k).onchange = (e) => store.set({ [k]: e.target.checked });
+$("s-hlAlpha").onchange = (e) => store.set({ hlAlpha: +e.target.value });
+$("s-fsDown").onclick = () => store.set({ sideFs: Math.max(FS_MIN, sideFs - 1) });
+$("s-fsUp").onclick = () => store.set({ sideFs: Math.min(FS_MAX, sideFs + 1) });
+$("s-wReset").onclick = () => store.remove("sideW");
+
+const ALL = ["docs", "words", "time", "backup", "settings"];
+const RENDER = { docs: renderDocs, words: loadWords, time: renderTime, backup: renderBackupSummary, settings: renderSettings };
 let restoring = false, dirty = new Set(), timer = 0, queue = Promise.resolve();
 function refresh(parts) {
   for (const p of parts) dirty.add(p);
@@ -234,6 +435,9 @@ function partsFor(keys) {
   const s = new Set();
   for (const k of keys) {
     if (k.startsWith("doc:") || k.startsWith("ann:")) s.add("docs").add("time").add("backup");
+    else if (k === "recall") s.add("words").add("settings");
+    else if (SETTINGS.includes(k)) s.add("settings");
+    else if (k.startsWith("rv:")) s.add("words").add("backup");
     else if (k.startsWith("v:")) s.add("words").add("time").add("backup");
     else if (k.startsWith("day:")) s.add("time").add("backup");
   }

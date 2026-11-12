@@ -1,7 +1,8 @@
 :root { --surface: #ffffff; --ink: #1c2421; --muted: #5e6b66; --bg: #f2f5f4; --line: #dde4e1; --green: #006a4e; --tint: #e7f2ee; --on-green: #fff; --danger: #c92a2a; }
 @media (prefers-color-scheme: dark) { :root { --surface: #18201d; --ink: #e6ece9; --muted: #9aa8a2; --bg: #101513; --line: #2c3833; --green: #4fc69a; --tint: #1f3029; --on-green: #0f1a16; --danger: #ff8787; } }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+html { font-size: var(--ui-fs, 16px); } /* global text size, set in Settings; every other size is in rem */
+body { margin: 0; background: var(--bg); color: var(--ink); font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
 button, input, textarea, select { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
 .bn { font-family: "Noto Serif Bengali", "Noto Sans Bengali", "Hind Siliguri", "Nirmala UI", Vrinda, serif; }

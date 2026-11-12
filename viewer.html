@@ -28,12 +28,18 @@
     <button id="wordsBtn" title="Your saved and looked-up words that appear in this PDF">Words <span id="wordCount" class="count"></span></button>
     <button id="notesBtn" title="Highlights and notes">Notes <span id="noteCount" class="count"></span></button>
     <a id="libraryBtn" class="btnlink" href="library.html" target="_blank" title="Reading history, saved words and reading time">Library</a>
+    <a id="settingsBtn" class="btnlink icon" href="library.html#settings" target="_blank" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
   </header>
   <div id="viewerContainer"><div id="viewer" class="pdfViewer"></div></div>
+  <div id="sideResize" role="separator" aria-orientation="vertical" aria-label="Resize panel" tabindex="0" title="Drag to resize the panel (or use ← →)"></div>
   <aside id="side" hidden>
     <div class="tabs" role="tablist">
       <button role="tab" data-pane="words" aria-selected="false">Words</button>
       <button role="tab" data-pane="notes" aria-selected="true">Notes</button>
+      <span class="fontsz" role="group" aria-label="Text size">
+        <button id="fontDown" title="Smaller text" aria-label="Smaller text">A−</button>
+        <button id="fontUp" title="Bigger text" aria-label="Bigger text">A+</button>
+      </span>
       <button class="close" title="Close panel" aria-label="Close panel">✕</button>
     </div>
     <section id="paneNotes" class="pane">
@@ -49,6 +55,10 @@
     </section>
     <section id="paneWords" class="pane" hidden>
       <p class="pane-intro">Your saved words that appear in this PDF, plus words you look up while reading. Click one to jump to it.</p>
+      <div class="recall-bar">
+        <label title="Hide meanings so you can test yourself. Click a hidden meaning to check it."><input type="checkbox" id="recallToggle"> Recall mode</label>
+        <button id="showAll" hidden>Show all</button>
+      </div>
       <ul id="wordList" class="wlist"><li class="empty">Scanning this PDF…</li></ul>
     </section>
   </aside>

@@ -16,7 +16,7 @@
     .box, .bar { --surface: #18201d; --ink: #e6ece9; --muted: #9aa8a2; --rule: #2c3833;
       --green: #4fc69a; --tint: #1f3029; --mark: #5a4a12; --on-green: #0f1a16; }
   }
-  .box { width: 340px; max-width: calc(100vw - 16px); max-height: min(460px, calc(100vh - 16px)); overflow: auto;
+  .box { width: 24.3em; max-width: calc(100vw - 16px); max-height: min(32.9em, calc(100vh - 16px)); overflow: auto;
     background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--green);
     border-radius: 4px 10px 10px 4px; box-shadow: 0 10px 30px rgba(10, 40, 30, .18);
     scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
@@ -26,8 +26,8 @@
 
   .top { padding: 12px 14px 10px; }
   .head { display: flex; align-items: center; gap: 8px; }
-  .word { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; flex: none; }
-  .ph { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .word { font-weight: 600; font-size: 1.071em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; flex: none; }
+  .ph { color: var(--muted); font-size: 0.929em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .tools { margin-left: auto; display: flex; gap: 2px; }
   .ib { all: unset; cursor: pointer; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; color: var(--muted); }
   .ib:hover { background: var(--tint); color: var(--ink); }
@@ -36,10 +36,10 @@
   .ib:focus-visible, .btn:focus-visible, .bar button:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
   .ib svg { width: 16px; height: 16px; }
 
-  .bn { font-family: ${BN}; font-size: 28px; line-height: 1.3; font-weight: 600; color: var(--green); margin: 4px 0 2px; }
+  .bn { font-family: ${BN}; font-size: 2em; line-height: 1.3; font-weight: 600; color: var(--green); margin: 4px 0 2px; }
   .en-hero { font-family: Georgia, "Times New Roman", serif; }
-  .bn.passage { font-size: 18px; line-height: 1.6; font-weight: 500; color: var(--ink); }
-  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; color: var(--muted); font-size: 12px; }
+  .bn.passage { font-size: 1.286em; line-height: 1.6; font-weight: 500; color: var(--ink); }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; color: var(--muted); font-size: 0.857em; }
   .lvl { display: inline-flex; align-items: center; gap: 6px; }
   .lvl i { display: inline-flex; gap: 2px; }
   .lvl i b { width: 4px; height: 10px; border-radius: 1px; background: var(--rule); }
@@ -48,39 +48,39 @@
   .basef span { font-family: ${BN}; }
   .alts { margin: 8px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
   .pos { font-style: italic; color: var(--muted); font-family: Georgia, serif; }
-  .terms { font-family: ${BN}; font-size: 15px; }
+  .terms { font-family: ${BN}; font-size: 1.071em; }
   .terms.en { font-family: Georgia, serif; }
 
   .sec { border-top: 1px solid var(--rule); padding: 10px 14px 12px; }
-  .label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  .label { font-size: 0.857em; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
   ol { margin: 0; padding-left: 20px; }
   li { margin: 2px 0; }
   li .pos { margin-right: 4px; }
   .ex { color: var(--muted); }
-  .syn { margin-top: 6px; color: var(--muted); font-size: 13px; }
+  .syn { margin-top: 6px; color: var(--muted); font-size: 0.929em; }
   .syn b { font-weight: 600; color: var(--ink); }
 
-  .orig { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-  .sent { font-family: Georgia, "Times New Roman", serif; font-size: 14px; line-height: 1.55; }
+  .orig { color: var(--muted); font-size: 0.929em; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .sent { font-family: Georgia, "Times New Roman", serif; font-size: 1em; line-height: 1.55; }
   mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
-  .btn { all: unset; cursor: pointer; margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--green);
+  .btn { all: unset; cursor: pointer; margin-top: 8px; font-size: 0.929em; font-weight: 600; color: var(--green);
     padding: 5px 10px; border: 1px solid currentColor; border-radius: 999px; }
   .btn:hover { background: var(--tint); }
-  .sbn { font-family: ${BN}; font-size: 16px; line-height: 1.65; margin-top: 8px; padding: 8px 10px; background: var(--tint); border-radius: 6px; }
+  .sbn { font-family: ${BN}; font-size: 1.143em; line-height: 1.65; margin-top: 8px; padding: 8px 10px; background: var(--tint); border-radius: 6px; }
   .muted { color: var(--muted); }
   .hlrow { display: flex; align-items: center; gap: 4px; padding-top: 8px; padding-bottom: 8px; }
   .hlrow .label { margin: 0 6px 0 0; }
-  .hlrow button { all: unset; cursor: pointer; height: 26px; min-width: 26px; display: grid; place-items: center; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .hlrow button { all: unset; cursor: pointer; height: 26px; min-width: 26px; display: grid; place-items: center; border-radius: 999px; font-size: 0.929em; font-weight: 600; }
   .hlrow button:hover { background: var(--tint); }
   .hlrow button:focus-visible { outline: 2px solid var(--green); }
   .hlrow .dot i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); }
   .hlrow .note { padding: 0 8px; }
-  .foot { border-top: 1px solid var(--rule); padding: 7px 14px; font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+  .foot { border-top: 1px solid var(--rule); padding: 7px 14px; font-size: 0.857em; color: var(--muted); display: flex; gap: 6px; align-items: center; }
   .foot svg { width: 13px; height: 13px; flex: none; }
 
   .bar { display: flex; align-items: center; gap: 2px; padding: 3px; background: var(--surface); border: 1px solid var(--rule);
     border-radius: 999px; box-shadow: 0 4px 16px rgba(0, 40, 28, .22); }
-  .bar button { all: unset; cursor: pointer; height: 28px; display: grid; place-items: center; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .bar button { all: unset; cursor: pointer; height: 28px; display: grid; place-items: center; border-radius: 999px; font-size: 0.929em; font-weight: 600; }
   .bar .tr { padding: 0 12px; background: var(--green); color: var(--on-green); }
   .bar .dot { width: 28px; }
   .bar .dot i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); }

@@ -34,9 +34,9 @@ body.side-open #viewerContainer { right: 320px; }
 
 /* highlights */
 .bpd-hl-layer { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-.bpd-hl { position: absolute; mix-blend-mode: multiply; opacity: .9; border-radius: 2px; }
+.bpd-hl { position: absolute; mix-blend-mode: multiply; opacity: .4; border-radius: 2px; }
 .bpd-hl.flash { animation: flash 1.2s ease-out 2; }
-@keyframes flash { 50% { opacity: .35; } }
+@keyframes flash { 50% { opacity: .15; } }
 @media (prefers-reduced-motion: reduce) { .bpd-hl.flash { animation: none; } }
 .bpd-pin { position: absolute; width: 14px; height: 14px; padding: 0; border-radius: 50% 50% 50% 0; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); cursor: pointer; pointer-events: auto; }
 
@@ -75,6 +75,7 @@ body.side-open #viewerContainer { right: 320px; }
 .wlist .w.now::after { content: "Looked up now"; margin-left: 6px; font-size: 10px; font-weight: 700; color: var(--muted); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; vertical-align: 2px; }
 .wlist .c { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .wlist .m { grid-column: 1 / -1; font-family: "Noto Serif Bengali", "Noto Sans Bengali", "Nirmala UI", Vrinda, serif; color: var(--green); }
+.wlist .d { grid-column: 1 / -1; font-family: Georgia, "Times New Roman", serif; font-size: 13px; line-height: 1.35; color: var(--ink); }
 .wlist .p { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
 .wlist .empty { color: var(--muted); font-size: 13px; line-height: 1.5; padding: 4px 0; }
 .docnote-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }

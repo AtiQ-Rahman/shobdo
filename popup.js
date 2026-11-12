@@ -307,7 +307,7 @@
     if (alive()) paint(rect);
     // Lets the PDF reader / website "your words" list add this word right away.
     if (hero(m)) window.dispatchEvent(new CustomEvent("bpd:lookup", { detail: {
-      word: m.off?.lemma || text.toLowerCase(), forms: [text.toLowerCase()], meaning: hero(m) } }));
+      word: m.off?.lemma || text.toLowerCase(), forms: [text.toLowerCase()], meaning: hero(m), def: m.off?.defs?.[0]?.[1] || "" } }));
   }
 
   async function showPassage(text, rect) {

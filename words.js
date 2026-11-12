@@ -16,7 +16,7 @@
     return v;
   }
 
-  // form -> { key, word, meaning, saved, session }
+  // form -> { key, word, meaning, def, saved, session }
   // Only saved words come from storage; words looked up during this visit are added with add().
   async function load() {
     const all = await chrome.storage.local.get(null);
@@ -25,20 +25,21 @@
       if (!k.startsWith("v:")) continue;
       const lemma = (s.lemma || s.w).toLowerCase();
       const forms = [...new Set([lemma, s.w.toLowerCase(), ...((all["h:" + lemma] || {}).forms || [])])];
-      add(map, { word: lemma, forms, meaning: s.meaning || "", saved: true });
+      add(map, { word: lemma, forms, meaning: s.meaning || "", def: s.def || "", saved: true });
     }
     return map;
   }
 
-  function add(map, { word, forms = [], meaning = "", saved = false }) {
+  function add(map, { word, forms = [], meaning = "", def = "", saved = false }) {
     const key = word.toLowerCase();
     const old = [...map.values()].find((e) => e.key === key);
     if (old && (old.saved || !saved)) { // keep the saved entry; just learn new forms
       if (meaning && !old.meaning) old.meaning = meaning;
+      if (def && !old.def) old.def = def;
       for (const f of [key, ...forms]) if (!map.has(f)) map.set(f, old);
       return old;
     }
-    const e = { key, word: key, meaning: meaning || old?.meaning || "", saved, session: !saved };
+    const e = { key, word: key, meaning: meaning || old?.meaning || "", def: def || old?.def || "", saved, session: !saved };
     for (const [f, v] of map) if (v === old) map.set(f, e);
     for (const f of [key, ...forms]) map.set(f.toLowerCase(), e);
     return e;

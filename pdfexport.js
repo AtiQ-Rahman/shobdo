@@ -40,12 +40,12 @@ export async function buildAnnotatedPdf(originalBytes, pdfjsDoc, data, author = 
     const ops = `/GS0 gs ${n(r)} ${n(g)} ${n(b)} rg\n` + quads.map((q) => `${q[4]} ${q[5]} ${n(q[2] - q[0])} ${n(q[1] - q[5])} re f`).join("\n");
     const ap = ctx.register(ctx.stream(ops, {
       Type: "XObject", Subtype: "Form", BBox: rect,
-      Resources: { ExtGState: { GS0: { Type: "ExtGState", BM: "Multiply", CA: 1, ca: 1 } } }
+      Resources: { ExtGState: { GS0: { Type: "ExtGState", BM: "Multiply", CA: 0.4, ca: 0.4 } } }
     }));
 
     const annot = ctx.obj({
       Type: "Annot", Subtype: "Highlight", Rect: rect, QuadPoints: quads.flat(),
-      C: [n(r), n(g), n(b)], CA: 1, F: 4, AP: { N: ap }
+      C: [n(r), n(g), n(b)], CA: 0.4, F: 4, AP: { N: ap }
     });
     annot.set(PDFName.of("T"), PDFHexString.fromText(author));
     annot.set(PDFName.of("M"), now);

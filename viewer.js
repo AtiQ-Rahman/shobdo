@@ -262,6 +262,7 @@ function renderWordList() {
     return `<li><button data-i="${i}">
       <span class="w${w.saved ? " saved" : " now"}">${escapeHtml(w.word)}</span><span class="c">${w.count}×</span>
       ${w.meaning ? `<span class="m">${escapeHtml(w.meaning)}</span>` : ""}
+      ${w.def ? `<span class="d">${escapeHtml(w.def)}</span>` : ""}
       <span class="p">Page${pages.length > 1 ? "s" : ""} ${pages.slice(0, 8).join(", ")}${pages.length > 8 ? "…" : ""}</span>
     </button></li>`;
   }).join("") : `<li class="empty">None of your saved words are in this PDF. Words you look up while reading will appear here too.</li>`;

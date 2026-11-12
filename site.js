@@ -32,6 +32,7 @@
   .tag.now { color: var(--muted); }
   .c { color: var(--muted); font-size: 12px; }
   .m { grid-column: 1 / -1; font-family: ${BN}; color: var(--green); }
+  .d { grid-column: 1 / -1; font-family: Georgia, "Times New Roman", serif; font-size: 13px; line-height: 1.35; color: var(--ink); }
   [hidden] { display: none !important; }`;
   const ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M8 7h7"/></svg>`;
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -71,7 +72,7 @@
           <button class="x" data-act="hide" title="Hide for this page" aria-label="Hide for this page">✕</button></div>
         <ul>${found.map((w, i) => `<li><button class="row" data-i="${i}" title="Show on the page">
           <span><span class="w">${esc(w.word)}</span>${w.saved ? `<span class="tag">Saved</span>` : `<span class="tag now">Looked up now</span>`}</span><span class="c">${w.count}×</span>
-          ${w.meaning ? `<span class="m">${esc(w.meaning)}</span>` : ""}</button></li>`).join("")}</ul>
+          ${w.meaning ? `<span class="m">${esc(w.meaning)}</span>` : ""}${w.def ? `<span class="d">${esc(w.def)}</span>` : ""}</button></li>`).join("")}</ul>
       </div>
       <button class="chip" data-act="toggle" aria-expanded="${open}">${ICON}${found.length} of your words</button>
     </div>`;

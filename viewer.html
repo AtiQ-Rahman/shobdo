@@ -45,8 +45,9 @@
     </div>
     <section id="paneNotes" class="pane">
       <div class="side-actions">
-        <button id="downloadPdf" class="primary-sm" title="Save a copy of this PDF with your highlights and notes inside. Adobe Reader, Chrome and other PDF apps will show them.">Download PDF with highlights</button>
-        <button class="export" title="Download highlights and notes as a Markdown file">Export notes (.md)</button>
+        <button id="downloadPdf" class="primary-sm" title="Save a copy of the whole PDF with your highlights and notes inside. Adobe Reader, Chrome and other PDF apps will show them.">Download full PDF with highlights</button>
+        <button id="downloadHl" title="A short PDF with just the text you highlighted and your notes, page by page. Opens the print window: pick “Save as PDF”.">Download only the highlights (PDF)</button>
+        <button class="export" title="Your highlights and notes as a Markdown file">Download notes (.md)</button>
       </div>
       <p id="dlStatus" class="dl-status"></p>
       <label class="docnote-label" for="docnote">Notes on this PDF</label>
@@ -61,6 +62,12 @@
         <button id="wordOrder" class="order-btn" aria-label="Order of the words">Page ↑</button>
       </div>
       <ul id="wordList" class="wlist"><li class="empty">Scanning this PDF…</li></ul>
+      <div id="wordExport" class="word-export" hidden>
+        <span>Download:</span>
+        <button data-fmt="txt" title="Plain text file">.txt</button>
+        <button data-fmt="md" title="Markdown file">.md</button>
+        <button data-fmt="pdf" title="Opens the print window: pick “Save as PDF”">PDF</button>
+      </div>
     </section>
   </aside>
   <div id="empty">

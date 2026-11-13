@@ -1,5 +1,6 @@
 import { store, esc, dayKey, fmtTime, ago, docsFrom, openDoc, renameDoc, watchTextSize, TEXT_SIZES, DEFAULT_UI_FS } from "./shared.js";
 import { pagesFrom, pageKeys, pageId, openPage } from "./pages.js";
+import { downloadWords } from "./wordexport.js";
 watchTextSize();
 const $ = (id) => document.getElementById(id);
 
@@ -124,12 +125,13 @@ let words = [];
 // Recall mode: meanings stay hidden until clicked, so you can test yourself first.
 let recall = false;
 const revealed = new Set();
-$("recallToggle").onchange = (e) => store.set({ recall: e.target.checked }); // the storage listener re-renders
-$("showAll").onclick = () => { for (const w of words) revealed.add(w.key); renderWords(); };
+$("recallBtn").onclick = () => store.set({ recall: !recall }); // the storage listener re-renders
 function loadWords(all) {
   if ((all.recall !== false) !== recall) { recall = all.recall !== false; revealed.clear(); } // on unless turned off
-  $("recallToggle").checked = recall;
-  $("showAll").hidden = !recall;
+  const rb = $("recallBtn");
+  rb.setAttribute("aria-pressed", String(recall));
+  rb.title = recall ? "Recall mode is on: meanings are hidden (click one to check it). Click to show all meanings."
+    : "Meanings are shown. Click to hide them and test yourself (Recall mode).";
   words = Object.entries(all).filter(([k]) => k.startsWith("v:")).map(([k, v]) => ({ key: k, ...v })).sort((a, b) => b.t - a.t);
   rv = {};
   for (const w of words) if (all["r" + w.key]) rv[w.key] = all["r" + w.key];
@@ -146,10 +148,17 @@ function sentenceHtml(w) {
 }
 const bnHtml = (w) => `<span class="bn">${esc(w.meaning)}</span>${w.more?.length > 1 ? `<span class="bn muted">${esc(w.more.filter((x) => x !== w.meaning).slice(0, 4).join(", "))}</span>` : ""}`;
 const defHtml = (w) => (w.def ? `<span class="def"><i>${esc(w.pos)}</i>${esc(w.def)}</span>` : "");
+// 30 words a page; the search and the downloads still cover all of them.
+const PER_PAGE = 30;
+let shown = [], wordPage = 0;
 function renderWords() {
   const q = $("q").value.trim().toLowerCase();
-  const shown = words.filter((w) => !q || [w.w, w.meaning, w.def, ...(w.more || [])].join(" ").toLowerCase().includes(q));
-  $("wordList").innerHTML = shown.length ? shown.map((w) => `
+  shown = words.filter((w) => !q || [w.w, w.meaning, w.def, ...(w.more || [])].join(" ").toLowerCase().includes(q));
+  const pages = Math.max(1, Math.ceil(shown.length / PER_PAGE));
+  wordPage = Math.min(wordPage, pages - 1); // e.g. after removing the last word on the last page
+  renderPager(pages);
+  const onPage = shown.slice(wordPage * PER_PAGE, (wordPage + 1) * PER_PAGE);
+  $("wordList").innerHTML = onPage.length ? onPage.map((w) => `
     <li class="card">${recall && !revealed.has(w.key) ? `
       <span class="w"><span class="word">${esc(w.w)}</span></span>
       <button class="reveal" data-k="${esc(w.key)}" title="Click to show the meaning" aria-label="Show the meaning of ${esc(w.w)}"><span class="rv" aria-hidden="true"><span class="w">${bnHtml(w)}</span>${defHtml(w)}</span></button>` : `
@@ -160,13 +169,46 @@ function renderWords() {
       <span class="acts"><button class="btn danger" data-del="${esc(w.key)}">Remove</button></span>
     </li>`).join("") : `<li class="empty">${words.length ? "No saved word matches your search." : "No saved words yet. Double-click a word and press the bookmark button in its meaning box."}</li>`;
 }
-$("q").oninput = renderWords;
+// Pager: ‹ 1 2 3 … 9 › with the pages near the current one.
+function renderPager(pages) {
+  const nav = $("wordPager");
+  nav.hidden = pages < 2;
+  if (pages < 2) { nav.innerHTML = ""; return; }
+  const nums = [...new Set([0, wordPage - 1, wordPage, wordPage + 1, pages - 1])].filter((p) => p >= 0 && p < pages).sort((a, b) => a - b);
+  let html = `<button class="btn" data-pg="${wordPage - 1}" ${wordPage === 0 ? "disabled" : ""} aria-label="Previous page">‹ Prev</button>`, prev = -1;
+  for (const p of nums) {
+    if (p - prev > 1) html += `<span class="gap">…</span>`;
+    html += `<button class="btn${p === wordPage ? " on" : ""}" data-pg="${p}" ${p === wordPage ? `aria-current="page"` : ""}>${p + 1}</button>`;
+    prev = p;
+  }
+  html += `<button class="btn" data-pg="${wordPage + 1}" ${wordPage === pages - 1 ? "disabled" : ""} aria-label="Next page">Next ›</button>`;
+  const from = wordPage * PER_PAGE + 1, to = Math.min(shown.length, from + PER_PAGE - 1);
+  nav.innerHTML = html + `<span class="muted range">${from}–${to} of ${shown.length}</span>`;
+}
+$("wordPager").onclick = (e) => {
+  const b = e.target.closest("button[data-pg]");
+  if (!b || b.disabled) return;
+  wordPage = +b.dataset.pg;
+  renderWords();
+  $("words").scrollIntoView({ block: "start" });
+};
+$("q").oninput = () => { wordPage = 0; renderWords(); };
 $("wordList").onclick = async (e) => {
   const r = e.target.closest("[data-k]");
   if (r) { revealed.add(r.dataset.k); renderWords(); return; }
   const d = e.target.closest("[data-del]");
   if (d) await store.remove([d.dataset.del, "r" + d.dataset.del]); // the word and its revise record; the storage listener re-renders
 };
+// .txt / .md / PDF of the words shown (your search applies), newest first.
+$("wordDl").addEventListener("click", (e) => {
+  const fmt = e.target.closest("button[data-fmt]")?.dataset.fmt;
+  if (!fmt) return;
+  const q = $("q").value.trim();
+  downloadWords({ fmt, title: "My words" + (q ? ` matching “${q}”` : ""), fileName: "my-words", order: "newest first",
+    items: shown.map((w) => ({ word: w.w, bn: [w.meaning, ...(w.more || []).filter((x) => x !== w.meaning).slice(0, 4)].filter(Boolean).join(", "),
+      en: w.def ? `${w.pos ? `(${w.pos}) ` : ""}${w.def}` : "", sentence: w.sentence || "",
+      meta: `${w.src?.title ? w.src.title + " · " : ""}saved ${new Date(w.t).toLocaleDateString("en-CA")}` })) });
+});
 $("csv").onclick = () => {
   const cell = (s) => `"${String(s || "").replace(/"/g, '""')}"`;
   const rows = words.map((w) => [w.w, [w.meaning, w.def && `(${w.pos}) ${w.def}`, w.sentence].filter(Boolean).join("<br>")]);

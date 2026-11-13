@@ -9,6 +9,12 @@ main.wrap { padding-top: 20px; padding-bottom: 40px; }
 h2 { font-size: 1rem; margin: 24px 0 8px; color: var(--muted); }
 
 .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pager { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 14px; }
+.pager .btn { min-width: 2.2em; padding: 4px 10px; }
+.pager .btn.on { background: var(--green); border-color: var(--green); color: var(--on-green); font-weight: 600; }
+.pager .btn:disabled { opacity: .4; cursor: default; }
+.pager .gap { padding: 0 4px; color: var(--muted); }
+.pager .range { margin-left: auto; font-size: .93em; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: start; }
 .card .t { font-weight: 600; font-size: 1.071rem; overflow-wrap: anywhere; }
 .card .m { font-size: 0.929rem; color: var(--muted); }
@@ -23,8 +29,11 @@ h2 { font-size: 1rem; margin: 24px 0 8px; color: var(--muted); }
 
 .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .toolbar input[type=search] { flex: 1; min-width: 200px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; background: var(--surface); }
-.toolbar .recall { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; }
-.toolbar .recall input { accent-color: var(--green); margin: 0; }
+.toolbar .icon-btn { display: inline-flex; align-items: center; gap: 6px; }
+.toolbar .icon-btn .ic-off, .toolbar .icon-btn[aria-pressed="true"] .ic-on { display: none; }
+.toolbar .icon-btn[aria-pressed="true"] .ic-off { display: inline; }
+.toolbar .icon-btn[aria-pressed="true"] { background: var(--tint); border-color: var(--green); color: var(--green); font-weight: 600; }
+.toolbar .dl-group { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .reveal { all: unset; box-sizing: border-box; cursor: pointer; border-radius: 6px; }
 .reveal:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .reveal .rv { display: grid; gap: 4px; filter: blur(6px); user-select: none; }

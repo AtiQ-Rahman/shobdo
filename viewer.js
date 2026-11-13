@@ -3,6 +3,7 @@ import { initAnnotations } from "./annotations.js";
 import { buildAnnotatedPdf } from "./pdfexport.js";
 import { watchTextSize, renameDoc } from "./shared.js";
 import { initSidePanel } from "./sidepanel.js";
+import { downloadWords, printHtml } from "./wordexport.js";
 watchTextSize();
 globalThis.pdfjsLib = pdfjsLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./lib/pdf.worker.min.mjs";
@@ -322,6 +323,7 @@ function renderWordList() {
   found = all.filter((w) => !crossed.has(w.key));
   const out = all.filter((w) => crossed.has(w.key));
   $("wordCount").textContent = found.length ? String(found.length) : "";
+  $("wordExport").hidden = !found.length;
   const outList = out.length ? `<li class="crossed-head"><button class="crossed-toggle" aria-expanded="${showCrossed}">${showCrossed ? "▾" : "▸"} Crossed out (${out.length})</button></li>` +
     (showCrossed ? out.map((w) => `<li class="crossed"><span class="w">${escapeHtml(w.word)}</span><button class="undo" data-u="${escapeHtml(w.key)}" title="Put it back in the list">Put back</button></li>`).join("") : "") : "";
   $("wordList").innerHTML = (found.length ? found.map((w, i) => {
@@ -335,6 +337,29 @@ function renderWordList() {
     </button>${hide ? `<button class="reveal" data-k="${escapeHtml(w.key)}" title="Click to show the meaning" aria-label="Show the meaning of ${escapeHtml(w.word)}"><span class="blur" aria-hidden="true">${meaning}</span></button>` : ""}</li>`;
   }).join("") : `<li class="empty">${out.length ? "You've crossed out all your words in this PDF." : "None of your saved words are in this PDF. Words you look up while reading will appear here too."}</li>`) + outList;
 }
+// ---------- download the word list (.txt / .md / PDF) ----------
+function sentenceAt(text, at) {
+  const flat = text.replace(/\s+/g, " ");
+  const pos = text.slice(0, at).replace(/\s+/g, " ").length; // same spot in the flattened text
+  let a = pos, b = pos;
+  while (a > 0 && !/[.!?]\s/.test(flat.slice(a - 2, a))) a--;
+  while (b < flat.length && !/[.!?]/.test(flat[b])) b++;
+  let s = flat.slice(a, b + 1).trim();
+  if (s.length > 320) { const i = pos - a; s = (i > 160 ? "…" : "") + s.slice(Math.max(0, i - 160), i + 160).trim() + "…"; }
+  return s;
+}
+$("wordExport").addEventListener("click", (ev) => {
+  const fmt = ev.target.closest("button[data-fmt]")?.dataset.fmt;
+  if (!fmt) return;
+  const title = record?.name || record?.title || "PDF";
+  downloadWords({ fmt, title: `Words: ${title}`, fileName: `${title} - words`, order: desc ? "last page first" : "in page order",
+    items: found.map((w) => {
+      const page = Math.floor(w.first / 1e7), pages = [...w.pages].sort((a, b) => a - b);
+      return { word: w.word, bn: w.meaning, en: w.def, sentence: pageTexts[page - 1] ? sentenceAt(pageTexts[page - 1], w.first % 1e7) : "",
+        meta: `Page${pages.length > 1 ? "s" : ""} ${pages.join(", ")} (${w.count}×)` };
+    }) });
+});
+
 const escapeHtml = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 // Click a word: jump to its next occurrence (clicking again moves on to the next page that has it).
@@ -391,6 +416,35 @@ chrome.storage.onChanged.addListener((c) => {
   markTimer = setTimeout(async () => { await loadWords(); markAll(); if (pageTexts.length) renderWordList(); }, 300);
 });
 await loadWords();
+
+// ---------- download only the highlights: a short PDF of the highlighted text + notes, page by page ----------
+$("downloadHl").onclick = () => {
+  const data = notes.getData(), st = $("dlStatus");
+  // A highlight across two pages is stored once per page with the same text: keep it once.
+  const seen = new Set();
+  const items = [...data.items].sort((a, b) => a.page - b.page || a.rects[0][1] - b.rects[0][1])
+    .filter((x) => { const k = x.t + "|" + x.text; return !seen.has(k) && seen.add(k); });
+  if (!items.length && !data.note) { st.textContent = "Nothing to download yet. Highlight some text first."; return; }
+  const e = escapeHtml, title = $("title").textContent || "PDF";
+  const para = (t) => e(t).replace(/\n/g, "<br>");
+  let last = 0;
+  printHtml(`<!doctype html><html><head><meta charset="utf-8"><title>${e(title)} - highlights</title><style>
+    body { font: 11pt/1.5 Georgia, "Times New Roman", serif; color: #111; margin: 0; }
+    h1 { font: 700 18pt system-ui, sans-serif; margin: 0 0 2pt; } .sub { color: #555; margin: 0 0 14pt; font-size: 10pt; }
+    h2 { font: 700 10pt system-ui, sans-serif; color: #666; text-transform: uppercase; letter-spacing: .04em; margin: 14pt 0 4pt; }
+    .docnote { background: #f4f6f5; padding: 8pt 10pt; border-radius: 4pt; margin-bottom: 8pt; }
+    .h { break-inside: avoid; margin: 0 0 8pt; padding-left: 10pt; border-left: 4pt solid var(--c); }
+    .h q { quotes: "“" "”"; } .n { margin-top: 3pt; font: 10pt/1.45 system-ui, sans-serif; color: #333;
+      font-family: system-ui, "Noto Sans Bengali", "Nirmala UI", Vrinda, sans-serif; } .n::before { content: "✎ "; color: #888; }
+    @media print { * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style></head><body>
+  <h1>${e(title)}</h1><p class="sub">${items.length} highlight${items.length === 1 ? "" : "s"} · ${new Date().toLocaleDateString("en-CA")}</p>
+  ${data.note ? `<div class="docnote">${para(data.note)}</div>` : ""}
+  ${items.map((x) => `${x.page !== last ? `<h2>Page ${(last = x.page)}</h2>` : ""}<div class="h" style="--c:${e(x.color)}"><q>${e(x.text)}</q>
+    ${x.note ? `<div class="n">${para(x.note)}</div>` : ""}</div>`).join("")}
+  </body></html>`);
+  st.textContent = "In the print window, pick “Save as PDF”.";
+};
 
 // ---------- download a copy with the highlights written into the PDF ----------
 $("downloadPdf").onclick = async () => {

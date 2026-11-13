@@ -19,7 +19,8 @@ Read English PDFs and webpages with Bangla help.
   box has the same icons. Pick which AIs show in Library → Settings → Ask AI. The question is also copied, so if
   a chat site doesn't pick it up, paste it with Ctrl+V.
 - **Bangla words work too**: double-click a Bangla word to get its English meaning.
-- **Save words** with the bookmark button. You can see them in Library → My words and export them as CSV for Anki.
+- **Save words** with the bookmark button. You can see them in Library → My words and download them as
+  .txt, .md or PDF (meanings, sentences, then a list for active recall) or as CSV for Anki.
 - **Words you've looked up** get a dotted underline in PDFs.
 - **Save webpages to read later**: toolbar menu → *Save this page to read later*, the “my words” panel on a page,
   or right-click → *Save page to Shobdo* (or *Save selected text to Shobdo* for just a part). You can give it a short
@@ -33,11 +34,13 @@ Read English PDFs and webpages with Bangla help.
   and export your notes as Markdown (side panel → Export).
 - **Your words, everywhere**: the PDF reader's **Words** tab lists your saved and looked-up words that appear
   in the PDF (with pages; click to jump), in page order (the button switches first page first / last page first),
-  with the word you just looked up highlighted. The × on a word crosses it out of
+  with the word you just looked up highlighted. **Download** (.txt, .md or PDF) saves the list: each word's Bangla
+  and English meaning, the sentence it's in and its pages, then a shuffled list of the words for active recall. The × on a word crosses it out of
   that PDF's list (and its underline there); *Crossed out* at the bottom puts it back. Saved words get a solid underline and looked-up words a dotted one.
   On websites, a "N of your words" button appears in the corner.
-- **Download PDF with highlights** (Notes tab): writes your highlights and notes into a copy of the PDF as
+- **Download full PDF with highlights** (Notes tab): writes your highlights and notes into a copy of the PDF as
   standard annotations, so Adobe Reader, Chrome, Edge and Preview show them.
+  **Download only the highlights** makes a short PDF with just the highlighted text and your notes, page by page.
 - **Backup / restore** (Library → Backup): one JSON file with everything. You can merge it with your current data or replace it.
 - **Reading time**: a timer counts the time you spend reading each PDF. It pauses when you switch tabs or
   stop scrolling, clicking or typing for 2 minutes. You can see it per PDF, per day and over the last 14 days in the Library.

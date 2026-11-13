@@ -2,15 +2,19 @@
 
 Read English PDFs and webpages with Bangla help.
 
+![Shobdo: double-click a word, see its family, translate a sentence, open it in Google Translate](media/shobdo-demo.gif)
+
 ▶ **[Watch the 2-minute demo](media/shobdo-demo.mp4)**
 
 - **Double-click a word** to see its Bangla meaning, English definitions, pronunciation, how common it is,
   its base form (running → run) and the sentence it's in. You can translate that sentence with one click.
 - **Words inside the meaning box work too**: double-click any word in it (a meaning, a definition, the sentence) to
-  look that one up; the ← button goes back. The 🔍 button searches the word on Google.
+  look that one up; the ← button goes back. The 🔍 button searches Google for the word's Bangla meaning with a
+  mnemonic, in a small window beside the page (not a new tab).
 - **Word family**: the meaning box lists the word's other parts of speech with their Bangla meaning
   (decide → *n.* decision, *adj.* decisive). Click one to look it up.
-- **Select text** and click **Translate** to translate a phrase or paragraph.
+- **Select text** and click **Translate** to translate a phrase or paragraph. The Google Translate button in that
+  box opens it in Google Translate, in the same small window.
 - **Bangla words work too**: double-click a Bangla word to get its English meaning.
 - **Save words** with the bookmark button. You can see them in Library → My words and export them as CSV for Anki.
 - **Words you've looked up** get a dotted underline in PDFs.

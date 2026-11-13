@@ -36,6 +36,41 @@ def box(page, sel):
 
 def center(r): return (r["x"] + r["w"] / 2, r["y"] + r["h"] / 2)
 
+def in_bubble(page, **attrs):
+    """Rect (CSS px) of a button inside the meaning box. The box lives in a closed shadow root,
+    which only the DevTools protocol can see into."""
+    cdp = page.context.new_cdp_session(page)
+    root = cdp.send("DOM.getDocument", {"depth": -1, "pierce": True})["root"]
+    def walk(n):
+        a = n.get("attributes", [])
+        a = dict(zip(a[::2], a[1::2]))
+        if n.get("nodeName") == "BUTTON" and all(a.get(k) == v for k, v in attrs.items()): return n
+        for c in n.get("children", []) + n.get("shadowRoots", []) + ([n["contentDocument"]] if "contentDocument" in n else []):
+            f = walk(c)
+            if f: return f
+    n = walk(root)
+    q = cdp.send("DOM.getBoxModel", {"backendNodeId": n["backendNodeId"]})["model"]["border"]
+    cdp.detach()
+    return {"x": q[0], "y": q[1], "w": q[2] - q[0], "h": q[5] - q[1]}
+
+def side_window(base_png, win_png, out_png, title):
+    """Paint the small Google window over the page screenshot, where Shobdo opens it (right side)."""
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    bg = Image.open(base_png).convert("RGBA"); w = Image.open(win_png).convert("RGBA")
+    S = 1.2; bar = int(30 * S); ww, wh = w.size[0], w.size[1] + bar
+    x, y = int((W - 480 - 16) * S), int(70 * S)
+    sh = Image.new("RGBA", bg.size, (0, 0, 0, 0)); ImageDraw.Draw(sh).rounded_rectangle([x, y + 8, x + ww, y + wh + 8], 12, fill=(0, 0, 0, 110))
+    bg = Image.alpha_composite(bg, sh.filter(ImageFilter.GaussianBlur(18)))
+    frame = Image.new("RGBA", (ww, wh), (0, 0, 0, 0)); d = ImageDraw.Draw(frame)
+    d.rounded_rectangle([0, 0, ww - 1, wh - 1], 10, fill=(222, 225, 230, 255))
+    try: font = ImageFont.truetype("DejaVuSans.ttf", int(13 * S))
+    except OSError: font = ImageFont.load_default()
+    d.text((int(14 * S), bar // 2), title, fill=(60, 64, 67), font=font, anchor="lm")
+    frame.paste(w, (0, bar))
+    m = Image.new("L", frame.size, 0); ImageDraw.Draw(m).rounded_rectangle([0, 0, ww - 1, wh - 1], 10, fill=255)
+    bg.paste(frame, (x, y), m)
+    bg.convert("RGB").save(out_png)
+
 def main():
     shutil.rmtree(PROFILE, ignore_errors=True)
     os.makedirs(SHOTS, exist_ok=True)
@@ -61,6 +96,13 @@ def main():
         pg.wait_for_timeout(3500)
         shot(pg, "web_popup")
 
+        # ---------- 1b. look up a word from inside the box: its word family ----------
+        r = in_bubble(pg, **{"data-act": "form"}); meta["family_word"] = r
+        pg.mouse.move(*center(r)); pg.mouse.click(*center(r)); pg.wait_for_timeout(3500)
+        shot(pg, "web_inside")
+        meta["back_btn"] = in_bubble(pg, **{"data-act": "back"})
+        meta["search_btn"] = in_bubble(pg, **{"data-act": "search"})
+
         # ---------- 2. drag-select a sentence -> Translate ----------
         pg.mouse.click(40, 860); pg.wait_for_timeout(300)
         s = "Slow reading is not a lack of skill."
@@ -75,6 +117,19 @@ def main():
         meta["web_bar_btn"] = {"x": bx, "y": by}
         pg.mouse.click(bx, by); pg.wait_for_timeout(3500)
         shot(pg, "web_passage")
+        meta["gt_btn"] = r = in_bubble(pg, **{"data-act": "gt"})
+        pg.mouse.move(*center(r)); pg.wait_for_timeout(300)
+        shot(pg, "web_gt_hover")
+        # The button opens a small browser window; headless Chromium can't show one, so load the same address in a page.
+        gw = ctx.new_page(); gw.set_viewport_size({"width": 480, "height": 690})
+        gw.goto("https://translate.google.com/?sl=en&tl=bn&op=translate&text=" + s.replace(" ", "%20"))
+        try: gw.wait_for_load_state("networkidle", timeout=20000)
+        except Exception: pass
+        gw.wait_for_timeout(3000)
+        gw.screenshot(path=os.path.join(SHOTS, "_gt_window.png"))
+        side_window(os.path.join(SHOTS, "web_passage.png"), os.path.join(SHOTS, "_gt_window.png"), os.path.join(SHOTS, "web_gt.png"), "Google Translate")
+        print("shot web_gt", flush=True)
+        gw.close()
 
         # ---------- seed: saved words, reading time ----------
         lib = ctx.new_page(); lib.goto(base + "library.html"); lib.wait_for_timeout(500)

@@ -1,7 +1,9 @@
 [
  ["intro", "Meet Shobdo: a reading companion that gives you the Bangla and English meaning of any word, right where you read."],
  ["word", "On any webpage, just double-click a word. You get its Bangla meaning, how common it is, English definitions, and the sentence you found it in."],
+ ["family", "Each word shows its family, like resilient and resilience. Click one, or double-click any word in the box, to look it up right there. The back arrow takes you back."],
  ["passage", "Select a phrase or a whole sentence, press Translate, and read it in Bangla instantly."],
+ ["google", "Want a second opinion? Open the sentence in Google Translate, or search a word on Google, in a small window right beside your page."],
  ["chip", "Saved words follow you. Shobdo spots them on every page you visit, even in other forms, like intimidate and intimidation."],
  ["save", "Found an article worth keeping? Save it to Shobdo with one click, and give it a short, clear name."],
  ["reader", "The saved copy opens in a clean reader, even offline. Highlight it, add notes, and see your words on the page."],

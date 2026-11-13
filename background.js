@@ -124,7 +124,31 @@ async function record(text, lemma, meaning) {
   await chrome.storage.local.set({ [key]: h, [day]: d });
 }
 
+// ---- Pronunciation ----
+// Speaking from the page is unreliable: page CSP can block audio and Chrome on Linux often drops
+// Web Speech utterances. Play audio in an offscreen document instead, with chrome.tts as a last resort.
+async function playAudio(urls) {
+  if (!(await chrome.offscreen.hasDocument())) {
+    await chrome.offscreen.createDocument({ url: "offscreen.html", reasons: ["AUDIO_PLAYBACK"], justification: "Play word pronunciation" })
+      .catch(() => {}); // another call may have created it meanwhile
+  }
+  return chrome.runtime.sendMessage({ target: "offscreen", type: "play", urls });
+}
+
+// Dictionary recordings are often missing, and system speech needs speech-dispatcher on Linux,
+// so Google Translate's voice sits in between.
+async function speak(text, audio) {
+  const gtts = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=" + encodeURIComponent(text.slice(0, 200));
+  if (await playAudio([audio, gtts].filter(Boolean)).catch(() => false)) return;
+  chrome.tts.stop();
+  chrome.tts.speak(text, { lang: "en-US", rate: 0.9 });
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, send) => {
+  if (msg?.type === "speak") {
+    speak(msg.text, msg.audio).finally(() => send(true));
+    return true;
+  }
   if (msg?.type === "offline") {
     lookupOffline(msg.text).then(async (r) => {
       if (msg.record && !/\s/.test(msg.text)) await record(msg.text, r?.lemma, r?.bn?.[0] || r?.en?.[0]).catch(() => {});

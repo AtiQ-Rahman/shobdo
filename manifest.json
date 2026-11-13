@@ -8,6 +8,8 @@
     "contextMenus",
     "scripting",
     "storage",
+    "tts",
+    "offscreen",
     "unlimitedStorage"
   ],
   "host_permissions": [

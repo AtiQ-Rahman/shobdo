@@ -96,7 +96,7 @@
     close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
     clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`
   };
-  const TITLES = { speak: "Pronounce", save: "Save to My words", copy: "Copy meaning", close: "Close" };
+  const TITLES = { speak: "Pronounce", save: "Save to My words", copy: "Copy English word", close: "Close" };
   const POS = { noun: "n.", verb: "v.", adjective: "adj.", adverb: "adv.", pronoun: "pron.", preposition: "prep.",
     conjunction: "conj.", interjection: "interj.", abbreviation: "abbr.", article: "art.", exclamation: "excl.", other: "also" };
   const pos = (p) => POS[String(p || "").toLowerCase()] || p || "";
@@ -130,8 +130,7 @@
   let cur = null; // { text, sentence, ctx, off, on, saved }
 
   function speak(text, audio) {
-    const tts = () => { const u = new SpeechSynthesisUtterance(text); u.lang = "en-US"; speechSynthesis.cancel(); speechSynthesis.speak(u); };
-    if (audio) new Audio(audio).play().catch(tts); else tts();
+    if (text) send({ type: "speak", text, audio });
   }
 
   function hero(m) {
@@ -146,7 +145,7 @@
     const act = b.dataset.act;
     if (act === "close") hide();
     if (act === "speak") speak(isBn(cur.text) ? hero(cur) : cur.text, cur.on?.pron?.audio);
-    if (act === "copy") navigator.clipboard.writeText(hero(cur)).then(() => { b.title = "Copied"; }, () => {});
+    if (act === "copy") navigator.clipboard.writeText(isBn(cur.text) ? hero(cur) : cur.text).then(() => { b.title = "Copied"; }, () => {});
     if (act === "save") toggleSave(b);
     if (act === "extra") { const x = cur.ctx.extras[+b.dataset.i]; hide(); x.onClick(); }
     if (act === "sentence") {

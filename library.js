@@ -525,8 +525,7 @@ $("revise").addEventListener("click", (e) => {
   if (h) { h.hidden = true; h.nextElementSibling.hidden = false; return; }
   const s = e.target.closest("[data-say]");
   if (!s) return;
-  const u = new SpeechSynthesisUtterance(s.dataset.say); u.lang = "en-US";
-  speechSynthesis.cancel(); speechSynthesis.speak(u);
+  chrome.runtime.sendMessage({ type: "speak", text: s.dataset.say }).catch(() => {});
 });
 document.addEventListener("keydown", (e) => {
   if ($("revise").hidden || $("rvCard").hidden || !round || e.ctrlKey || e.metaKey || e.altKey) return;

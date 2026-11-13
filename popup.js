@@ -46,6 +46,7 @@
   .lvl i { display: inline-flex; gap: 2px; }
   .lvl i b { width: 4px; height: 10px; border-radius: 1px; background: var(--rule); }
   .lvl i b.f { background: var(--green); }
+  .ipa { color: var(--ink); overflow-wrap: anywhere; }
   .basef b { color: var(--ink); font-weight: 600; }
   .basef span { font-family: ${BN}; }
   .alts { margin: 8px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
@@ -280,7 +281,7 @@
 
   function renderWord(m) {
     const bnWord = isBn(m.text);
-    let h = `<div class="top">` + head(m.text, m.on?.pron?.phonetic, ["speak", "save", "copy", "search", "close"], m.saved);
+    let h = `<div class="top">` + head(m.text, "", ["speak", "save", "copy", "search", "close"], m.saved);
     const main = hero(m);
     if (!main) {
       if (m.pending) return h + `<div class="bn muted" style="font-size:18px">Looking up…</div></div>`;
@@ -288,6 +289,7 @@
     }
     h += `<div class="bn${bnWord ? " en-hero" : ""}">${esc(main)}</div>`;
     const meta = [];
+    if (m.on?.pron?.phonetic) meta.push(`<span class="ipa">${esc(m.on.pron.phonetic)}</span>`); // its own line part, so it never gets cut
     if (m.on?.tr?.translit && !bnWord) meta.push(`<span>${esc(m.on.tr.translit)}</span>`);
     if (m.off?.level) meta.push(`<span class="lvl" title="How common this word is in everyday English"><i>${[1, 2, 3, 4, 5].map((i) => `<b class="${i <= m.off.level.n ? "f" : ""}"></b>`).join("")}</i>${esc(m.off.level.label)}</span>`);
     if (m.off?.base) meta.push(`<span class="basef">Base form: <b>${esc(m.off.base.word)}</b>${m.off.base.bn ? ` <span>${esc(m.off.base.bn)}</span>` : ""}</span>`);

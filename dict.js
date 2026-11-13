@@ -54,6 +54,20 @@ export function level(rank) {
   return { n: 2, label: "Rare" };
 }
 
+// Word family (decide -> decision, decisive), each with its first good Bangla meaning.
+const FORM_POS = { n: "noun", v: "verb", a: "adjective", r: "adverb" };
+const POS_TAG = /\s*\((?:N|V|Adj\.?|Adv\.?|Pro\.?|Prep\.?|Conj\.?|Interj\.?|Phrase|Abbr\.?|Article)\)\s*/gi;
+// "decided" gets its own family (adv. decidedly) plus its base form's (n. decision, adj. decisive).
+async function familyOf(own, base, w, lemma) {
+  const seen = new Set([w, lemma]);
+  const all = [...(base || []), ...(own || [])].filter(([, x]) => !seen.has(x) && seen.add(x));
+  all.sort((a, b) => "nvar".indexOf(a[0]) - "nvar".indexOf(b[0])); // stable: most common first within each
+  return Promise.all(all.map(async ([p, x]) => {
+    const e = await entry(x);
+    return { pos: FORM_POS[p], word: x, bn: e?.b && !e.f ? e.b[0].replace(POS_TAG, " ").trim() : "" };
+  }));
+}
+
 // English word -> everything we know offline.
 export async function lookupEnglish(word) {
   const w = word.toLowerCase();
@@ -70,6 +84,7 @@ export async function lookupEnglish(word) {
     defs: own.d || b.d || [],
     syn: own.s || b.s || [],
     ant: own.a || b.a || [],
+    forms: await familyOf(own.m, b.m, w, base?.word),
     level: level(rank === Infinity ? 0 : rank)
   };
 }

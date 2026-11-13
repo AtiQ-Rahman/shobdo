@@ -52,6 +52,11 @@
   .pos { font-style: italic; color: var(--muted); font-family: Georgia, serif; }
   .terms { font-family: ${BN}; font-size: 1.071em; }
   .terms.en { font-family: Georgia, serif; }
+  .forms { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
+  .fw { all: unset; cursor: pointer; font-weight: 600; color: var(--green); border-bottom: 1px dotted currentColor; }
+  .fw:hover { border-bottom-style: solid; }
+  .fw:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+  .fbn { font-family: ${BN}; }
 
   .sec { border-top: 1px solid var(--rule); padding: 10px 14px 12px; }
   .label { font-size: 0.857em; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
@@ -151,6 +156,7 @@
     if (!b || !cur) return;
     const act = b.dataset.act;
     if (act === "close") hide();
+    if (act === "form") lookInside(b.dataset.w);
     if (act === "back") { const m = back.pop(); if (m) { cur = m; seq++; box.scrollTop = 0; paint(lastRect); } }
     if (act === "search") {
       const q = cur.mode === "passage" ? cur.text.slice(0, 300) : cur.text + " meaning";
@@ -174,7 +180,11 @@
     const sel = root.getSelection ? root.getSelection() : window.getSelection();
     const text = (sel?.toString() || "").replace(/\s+/g, " ").trim().replace(/^[^\p{L}\p{N}\p{M}]+|[^\p{L}\p{N}\p{M}]+$/gu, "");
     sel?.removeAllRanges();
-    if (!text || /\s/.test(text) || !/[A-Za-z\u0980-\u09FF]/.test(text) || text.toLowerCase() === cur.text.toLowerCase()) return;
+    if (!/\s/.test(text) && /[A-Za-z\u0980-\u09FF]/.test(text)) lookInside(text);
+  }
+
+  function lookInside(text) {
+    if (!text || text.toLowerCase() === cur.text.toLowerCase()) return;
     const { extras, ...ctx } = cur.ctx || {}; // highlight buttons belong to the word in the page, not this one
     back.push(cur);
     show(text, lastRect, null, ctx, true);
@@ -245,6 +255,20 @@
     return `<div class="foot">${ICON.clock}<span>${parts.map(esc).join(" · ")}</span></div>`;
   }
 
+  // Other parts of speech of the same word: n. decision সিদ্ধান্ত · adj. decisive …  (click one to look it up)
+  function formsSection(forms) {
+    if (!forms?.length) return "";
+    const rows = [];
+    for (const f of forms) {
+      const last = rows[rows.length - 1];
+      if (last && last[0] === f.pos) last[1].push(f); else rows.push([f.pos, [f]]);
+    }
+    return `<div class="sec"><div class="label">Word family</div><div class="forms">` + rows.map(([p, fs]) =>
+      `<span class="pos">${esc(pos(p))}</span><span>` + fs.map((f) =>
+        `<button class="fw" data-act="form" data-w="${esc(f.word)}" title="Look up “${esc(f.word)}”">${esc(f.word)}</button>${f.bn ? ` <span class="fbn">${esc(f.bn)}</span>` : ""}`).join(", ") +
+      `</span>`).join("") + `</div></div>`;
+  }
+
   function englishSection(defs, syn, ant) {
     if (!defs?.length) return "";
     let h = `<div class="sec"><div class="label">English</div><ol>` +
@@ -282,6 +306,7 @@
     if (rows.length) h += `<div class="alts">` + rows.map(([p, t]) => `<span class="pos">${esc(p)}</span><span class="terms${bnWord ? " en" : ""}">${t.map(esc).join(", ")}</span>`).join("") + `</div>`;
     h += `</div>`;
     h += hlRow(m);
+    h += formsSection(m.off?.forms);
     h += englishSection(m.off?.defs, m.off?.syn, m.off?.ant);
     return h + sentenceBlock(m.sentence) + foot(m);
   }

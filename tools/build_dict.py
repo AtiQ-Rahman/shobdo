@@ -10,7 +10,8 @@ Sources
 
 Output
   data/en/<xy>.json   word -> {"b": [bangla...], "f": 1 if bangla only from the noisy list,
-                               "d": [[pos, definition, example]], "s": [synonyms], "a": [antonyms], "r": rank}
+                               "d": [[pos, definition, example]], "s": [synonyms], "a": [antonyms], "r": rank,
+                               "m": [[pos, word]] — word family: other parts of speech (decide -> v. decision, adj. decisive)}
   data/bn/<hex>.json  bangla term -> [english words]
   data/exc.json       irregular form -> [base forms]   (ran -> run, mice -> mouse)
 """
@@ -52,6 +53,7 @@ def ss_key(p, off):
     return (p, off) if (p, off) in synsets else (("a" if p == "s" else p), off)
 
 en = defaultdict(lambda: {"d": [], "s": [], "a": []})
+noun_tagged = {}  # how often WordNet's sample texts used the word as a noun
 for p, name in FILES.items():
     with open(os.path.join(wn, "index." + name), encoding="utf-8") as fh:
         for line in fh:
@@ -61,6 +63,7 @@ for p, name in FILES.items():
             tagged = int(t[4 + pcnt + 1])
             offs = t[4 + pcnt + 2:]
             w = norm(lemma)
+            if p == "n": noun_tagged[w] = tagged
             if " " in w: continue  # double-click only ever selects single words
             e = en[w]
             group = []
@@ -83,6 +86,20 @@ for p, name in FILES.items():
                         a = norm(tss["words"][tgt - 1])
                         if a not in e["a"]: e["a"].append(a)
             e.setdefault("g", []).append((tagged, len(offs), group))
+
+# Word family from WordNet's "derivationally related" (+) and "pertains to" (\\, adverb -> adjective) links.
+# Both are links between two exact words, so they're added in both directions.
+family = defaultdict(set)  # word -> {(pos letter, related word)}
+for (p, off), ss in synsets.items():
+    for sym, toff, tpos, st in ss["ptrs"]:
+        if sym not in ("+", "\\"): continue
+        src, tgt = int(st[:2], 16), int(st[2:], 16)
+        tss = synsets.get(ss_key(tpos, toff))
+        if not (src and tgt and tss): continue
+        a, b = norm(ss["words"][src - 1]), norm(tss["words"][tgt - 1])
+        if a == b or " " in a or " " in b: continue
+        family[a].add(("a" if tss["type"] == "s" else tss["type"], b))
+        family[b].add(("a" if ss["type"] == "s" else ss["type"], a))
 
 exc = defaultdict(list)
 for name in FILES.values():
@@ -131,6 +148,23 @@ for i, line in enumerate(open(freq_path, encoding="utf-8")):
     w = line.split(" ")[0].lower()
     rank.setdefault(w, i + 1)
 
+# Keep the useful part of each family: known words (common, or with a good Bangla meaning), not the -ing
+# form of the word itself unless it's really used as a noun ("building" yes, "deciding" no), at most 3 per
+# part of speech, most common first.
+MAX_FORMS_PER_POS, FORM_RANK = 3, 30000
+def gerund_of(x, w):
+    if not x.endswith("ing"): return False
+    s = x[:-3]
+    return s in (w, w.rstrip("e")) or s + "e" == w or (len(s) > 2 and s[-1] == s[-2] and s[:-1] == w)
+def forms(w):
+    out = []
+    for p in "nvar":
+        xs = [x for q, x in family.get(w, ()) if q == p and x != w and not (gerund_of(x, w) and not noun_tagged.get(x))
+              and (rank.get(x, 10**9) <= FORM_RANK or x in bn)]
+        xs.sort(key=lambda x: (rank.get(x, 10**9), x))
+        out += [[p, x] for x in xs[:MAX_FORMS_PER_POS]]
+    return out
+
 # ---- merge + shard ----
 words = set(en) | set(bn) | set(noisy)
 shards = defaultdict(dict)
@@ -139,7 +173,7 @@ def shard(w):
     b = w[1] if len(w) > 1 and "a" <= w[1] <= "z" else "_"
     return a + b
 
-for w in words:
+for w in sorted(words):  # sorted, so a rebuild from the same sources gives the same files
     if not w or len(w) > 40 or " " in w: continue
     e = {}
     if w in bn: e["b"] = bn[w]
@@ -150,6 +184,7 @@ for w in words:
         if x["s"]: e["s"] = x["s"]
         if x["a"]: e["a"] = x["a"]
     if w in rank: e["r"] = rank[w]
+    if e and (m := forms(w)): e["m"] = m
     if e: shards[shard(w)][w] = e
 
 os.makedirs(os.path.join(out, "en"), exist_ok=True)
@@ -166,5 +201,6 @@ os.makedirs(os.path.join(out, "bn"), exist_ok=True)
 for k, v in rev.items():
     json.dump(v, open(os.path.join(out, "bn", k + ".json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 
+exc = {k: exc[k] for k in sorted(exc)}
 json.dump(exc, open(os.path.join(out, "exc.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 print("words", len(words), "en shards", len(shards), "bn shards", len(rev), "exceptions", len(exc))

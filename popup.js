@@ -25,10 +25,12 @@
   @media (prefers-reduced-motion: reduce) { .box.in { animation: none; } }
 
   .top { padding: 12px 14px 10px; }
-  .head { display: flex; align-items: center; gap: 8px; }
-  .word { font-weight: 600; font-size: 1.071em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; flex: none; }
-  .ph { color: var(--muted); font-size: 0.929em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-  .tools { margin-left: auto; display: flex; gap: 2px; }
+  .head { display: flex; align-items: center; gap: 6px; }
+  .word { font-weight: 600; font-size: 1.071em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
+  .ph { color: var(--muted); font-size: 0.929em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 0; }
+  .tools { margin-left: auto; display: flex; gap: 0; flex: none; }
+  .head .ib { width: 26px; }
+  .head .back { flex: none; margin-left: -6px; }
   .ib { all: unset; cursor: pointer; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; color: var(--muted); }
   .ib:hover { background: var(--tint); color: var(--ink); }
   .ib.on { color: var(--green); }
@@ -93,10 +95,12 @@
     speak: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>`,
     save: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>`,
     copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`,
+    search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>`,
+    back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>`,
     close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
     clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`
   };
-  const TITLES = { speak: "Pronounce", save: "Save to My words", copy: "Copy English word", close: "Close" };
+  const TITLES = { speak: "Pronounce", save: "Save to My words", copy: "Copy English word", search: "Search on Google", close: "Close" };
   const POS = { noun: "n.", verb: "v.", adjective: "adj.", adverb: "adv.", pronoun: "pron.", preposition: "prep.",
     conjunction: "conj.", interjection: "interj.", abbreviation: "abbr.", article: "art.", exclamation: "excl.", other: "also" };
   const pos = (p) => POS[String(p || "").toLowerCase()] || p || "";
@@ -114,6 +118,7 @@
     box = root.querySelector(".box");
     bar = root.querySelector(".bar");
     box.addEventListener("click", onBoxClick);
+    box.addEventListener("dblclick", onBoxDblClick);
     bar.addEventListener("mousedown", (e) => e.preventDefault()); // keep the page selection
     bar.addEventListener("click", (e) => {
       const b = e.target.closest("button");
@@ -128,6 +133,8 @@
 
   // ---------- state for the open bubble ----------
   let cur = null; // { text, sentence, ctx, off, on, saved }
+  let back = [];  // words you looked up before this one from inside the box (newest last)
+  let lastRect = null;
 
   function speak(text, audio) {
     if (text) send({ type: "speak", text, audio });
@@ -144,6 +151,11 @@
     if (!b || !cur) return;
     const act = b.dataset.act;
     if (act === "close") hide();
+    if (act === "back") { const m = back.pop(); if (m) { cur = m; seq++; box.scrollTop = 0; paint(lastRect); } }
+    if (act === "search") {
+      const q = cur.mode === "passage" ? cur.text.slice(0, 300) : cur.text + " meaning";
+      window.open("https://www.google.com/search?q=" + encodeURIComponent(q), "_blank", "noopener");
+    }
     if (act === "speak") speak(isBn(cur.text) ? hero(cur) : cur.text, cur.on?.pron?.audio);
     if (act === "copy") navigator.clipboard.writeText(isBn(cur.text) ? hero(cur) : cur.text).then(() => { b.title = "Copied"; }, () => {});
     if (act === "save") toggleSave(b);
@@ -154,6 +166,18 @@
       const r = await send({ type: "online", text: cur.sentence.text });
       out.textContent = r?.tr?.translation || "Couldn't translate this sentence. Check your internet connection and try again.";
     }
+  }
+
+  // Double-click a word inside the box (a meaning, a definition, the sentence…) to look it up there.
+  function onBoxDblClick(e) {
+    if (!cur || e.target.closest("button")) return;
+    const sel = root.getSelection ? root.getSelection() : window.getSelection();
+    const text = (sel?.toString() || "").replace(/\s+/g, " ").trim().replace(/^[^\p{L}\p{N}\p{M}]+|[^\p{L}\p{N}\p{M}]+$/gu, "");
+    sel?.removeAllRanges();
+    if (!text || /\s/.test(text) || !/[A-Za-z\u0980-\u09FF]/.test(text) || text.toLowerCase() === cur.text.toLowerCase()) return;
+    const { extras, ...ctx } = cur.ctx || {}; // highlight buttons belong to the word in the page, not this one
+    back.push(cur);
+    show(text, lastRect, null, ctx, true);
   }
 
   async function toggleSave(btn) {
@@ -190,7 +214,8 @@
 
   // ---------- rendering ----------
   function head(word, phonetic, tools, saved) {
-    return `<div class="head"><span class="word">${esc(word)}</span><span class="ph">${esc(phonetic || "")}</span>
+    const b = back.length ? `<button class="ib back" data-act="back" title="Back to “${esc(back[back.length - 1].mode === "passage" ? "Translation" : back[back.length - 1].text)}”">${ICON.back}</button>` : "";
+    return `<div class="head">${b}<span class="word" title="${esc(word)}">${esc(word)}</span><span class="ph">${esc(phonetic || "")}</span>
       <span class="tools">${tools.map((t) => `<button class="ib${t === "save" && saved ? " on" : ""}" data-act="${t}" title="${saved && t === "save" ? "Saved — click to remove" : TITLES[t]}">${ICON[t]}</button>`).join("")}</span></div>`;
   }
 
@@ -231,7 +256,7 @@
 
   function renderWord(m) {
     const bnWord = isBn(m.text);
-    let h = `<div class="top">` + head(m.text, m.on?.pron?.phonetic, ["speak", "save", "copy", "close"], m.saved);
+    let h = `<div class="top">` + head(m.text, m.on?.pron?.phonetic, ["speak", "save", "copy", "search", "close"], m.saved);
     const main = hero(m);
     if (!main) {
       if (m.pending) return h + `<div class="bn muted" style="font-size:18px">Looking up…</div></div>`;
@@ -262,7 +287,7 @@
   }
 
   function renderPassage(m) {
-    let h = `<div class="top">` + head("Translation", "", ["copy", "close"]) + `<div class="orig">${esc(m.text)}</div>`;
+    let h = `<div class="top">` + head("Translation", "", ["copy", "search", "close"]) + `<div class="orig">${esc(m.text)}</div>`;
     const t = hero(m);
     if (!t && m.pending) return h + `<div class="bn passage muted">Translating…</div></div>`;
     if (!t) return h + `<p class="muted">Couldn't translate this text${m.on?.error ? ` (${esc(m.on.error)})` : ""}. Translating passages needs an internet connection.</p></div>`;
@@ -272,6 +297,7 @@
   // ---------- open / update ----------
   let seq = 0;
   function paint(rect) {
+    lastRect = rect;
     box.innerHTML = cur.mode === "passage" ? renderPassage(cur) : renderWord(cur);
     place(rect);
   }
@@ -287,7 +313,8 @@
     return () => my === seq && !box.hidden;
   }
 
-  async function show(text, rect, sentence, ctx) {
+  async function show(text, rect, sentence, ctx, inside = false) {
+    if (!inside) back = [];
     const m = { mode: "word", text, sentence, ctx, pending: true };
     const alive = openBox(m, rect);
     const key = "v:";
@@ -310,6 +337,7 @@
   }
 
   async function showPassage(text, rect) {
+    back = [];
     const m = { mode: "passage", text, pending: true };
     const alive = openBox(m, rect);
     m.on = await send({ type: "online", text });

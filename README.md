@@ -6,6 +6,8 @@ Read English PDFs and webpages with Bangla help.
 
 - **Double-click a word** to see its Bangla meaning, English definitions, pronunciation, how common it is,
   its base form (running → run) and the sentence it's in. You can translate that sentence with one click.
+- **Words inside the meaning box work too**: double-click any word in it (a meaning, a definition, the sentence) to
+  look that one up; the ← button goes back. The 🔍 button searches the word on Google.
 - **Select text** and click **Translate** to translate a phrase or paragraph.
 - **Bangla words work too**: double-click a Bangla word to get its English meaning.
 - **Save words** with the bookmark button. You can see them in Library → My words and export them as CSV for Anki.

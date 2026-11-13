@@ -538,7 +538,7 @@ document.addEventListener("keydown", (e) => {
 
 // ---------- Settings ----------
 // Every setting lives in chrome.storage.local; the reader, websites and popup all listen for changes.
-const SETTINGS = ["aiList", "uiFs", "autoOpen", "markSeen", "siteBadge", "recall", "hlAlpha", "sideFs", "sideW", "wordsFs", "rvPrefs"];
+const SETTINGS = ["aiList", "uiFs", "autoOpen", "markSeen", "siteBadge", "recall", "hlAlpha", "sideFs", "sideW", "wordsFs", "rvPrefs", "wordSort"];
 const FS_MIN = 12, FS_MAX = 24;
 let sideFs = 14;
 function renderSettings(all) {

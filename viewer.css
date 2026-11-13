@@ -94,6 +94,12 @@ body.resizing #viewerContainer { pointer-events: none; }
 .recall-bar input { accent-color: var(--green); margin: 0; }
 .recall-bar button { border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: .86em; }
 .recall-bar button:hover { background: var(--tint); }
+.recall-bar .icon-btn { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; color: var(--ink); }
+.recall-bar .icon-btn .ic-off, .recall-bar .icon-btn[aria-pressed="true"] .ic-on { display: none; }
+.recall-bar .icon-btn[aria-pressed="true"] .ic-off { display: inline; }
+.recall-bar .icon-btn[aria-pressed="true"] { background: var(--tint); border-color: var(--green); color: var(--green); font-weight: 600; }
+.recall-bar .order-btn { margin-left: auto; color: var(--ink); white-space: nowrap; }
+.wlist li.fresh { background: var(--tint); border-radius: 6px; box-shadow: inset 3px 0 0 var(--green); }
 .wlist .reveal { padding-top: 0; }
 .wlist .reveal .blur { display: contents; }
 .wlist .reveal .m, .wlist .reveal .d { filter: blur(6px); user-select: none; }
@@ -109,6 +115,18 @@ body.resizing #viewerContainer { pointer-events: none; }
 .wlist .m { grid-column: 1 / -1; font-family: "Noto Serif Bengali", "Noto Sans Bengali", "Nirmala UI", Vrinda, serif; color: var(--green); }
 .wlist .d { grid-column: 1 / -1; font-family: Georgia, "Times New Roman", serif; font-size: .93em; line-height: 1.35; color: var(--ink); }
 .wlist .p { grid-column: 1 / -1; font-size: .86em; color: var(--muted); }
+.wlist li { position: relative; }
+.wlist li > button[data-i] { padding-right: 34px; }
+.wlist .x { all: unset; position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; opacity: .55; }
+.wlist li:hover .x, .wlist .x:focus-visible { opacity: 1; }
+.wlist .x:hover { background: var(--tint); color: var(--ink); }
+.wlist .x:focus-visible { outline: 2px solid var(--green); }
+.wlist .crossed-head { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+.wlist .crossed-toggle { display: block; color: var(--muted); font-size: .9em; padding: 4px 10px; }
+.wlist .crossed { display: flex; align-items: center; justify-content: space-between; padding: 3px 10px; }
+.wlist .crossed .w { text-decoration: line-through; color: var(--muted); font-weight: 400; }
+.wlist .crossed .undo { all: unset; font-size: .85em; color: var(--green); cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+.wlist .crossed .undo:hover { background: var(--tint); }
 .wlist .empty { color: var(--muted); font-size: .93em; line-height: 1.5; padding: 4px 0; }
 .docnote-label { display: block; font-size: .86em; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
 .docnote { width: 100%; resize: vertical; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; background: transparent; line-height: 1.5; }

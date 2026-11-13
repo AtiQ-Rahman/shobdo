@@ -57,8 +57,8 @@
     <section id="paneWords" class="pane" hidden>
       <p class="pane-intro">Your saved words that appear in this PDF, plus words you look up while reading. Click one to jump to it.</p>
       <div class="recall-bar">
-        <label title="Hide meanings so you can test yourself. Click a hidden meaning to check it."><input type="checkbox" id="recallToggle"> Recall mode</label>
-        <button id="showAll" hidden>Show all</button>
+        <button id="recallBtn" class="icon-btn" aria-pressed="false"><svg class="ic-on" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="ic-off" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-2.6 3.6M6.6 6.6C3.7 8.4 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.6 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/></svg><span class="lbl">Recall</span></button>
+        <button id="wordOrder" class="order-btn" aria-label="Order of the words">Page ↑</button>
       </div>
       <ul id="wordList" class="wlist"><li class="empty">Scanning this PDF…</li></ul>
     </section>

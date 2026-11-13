@@ -88,7 +88,8 @@
     return stemIndex(map).get(stem(t)) || null;
   }
 
-  // -> Map key -> { word, meaning, saved, count, forms:Set, pages:Set }
+  // -> Map key -> { word, meaning, saved, count, forms:Set, pages:Set, first }
+  // `first` is where the word first appears (page, then position on it), for sorting in reading order.
   function scan(map, text, page, into = new Map()) {
     if (!map.size) return into;
     let m;
@@ -97,7 +98,7 @@
       const e = match(map, m[0]);
       if (!e) continue;
       let r = into.get(e.key);
-      if (!r) into.set(e.key, (r = { ...e, count: 0, forms: new Set(), pages: new Set() }));
+      if (!r) into.set(e.key, (r = { ...e, count: 0, forms: new Set(), pages: new Set(), first: (page || 0) * 1e7 + m.index }));
       r.count++; r.forms.add(m[0]);
       if (page) r.pages.add(page);
     }

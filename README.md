@@ -32,7 +32,9 @@ Read English PDFs and webpages with Bangla help.
 - **In the PDF reader and saved pages:** highlight in 4 colors, add notes to highlights, write notes about the whole PDF,
   and export your notes as Markdown (side panel → Export).
 - **Your words, everywhere**: the PDF reader's **Words** tab lists your saved and looked-up words that appear
-  in the PDF (with pages; click to jump). Saved words get a solid underline and looked-up words a dotted one.
+  in the PDF (with pages; click to jump), in page order (the button switches first page first / last page first),
+  with the word you just looked up highlighted. The × on a word crosses it out of
+  that PDF's list (and its underline there); *Crossed out* at the bottom puts it back. Saved words get a solid underline and looked-up words a dotted one.
   On websites, a "N of your words" button appears in the corner.
 - **Download PDF with highlights** (Notes tab): writes your highlights and notes into a copy of the PDF as
   standard annotations, so Adobe Reader, Chrome, Edge and Preview show them.

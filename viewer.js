@@ -91,6 +91,7 @@ async function openData(data, name, url) {
     Object.assign(record, { title, url: url || record.url || "", local: !url && !record.url, pages: doc.numPages, t: Date.now() });
     await store.set({ [docKey]: record });
     resumePage = record.page || 1;
+    crossed = new Set(record.crossed || []); showCrossed = false;
 
     window.BPD_CTX = { title: record.name || title, url: url || "", docKey };
     viewer.setDocument(doc);
@@ -214,6 +215,8 @@ addEventListener("pagehide", () => flush());
 // Saved words get a solid underline, words you only looked up get a dotted one.
 let wordMap = new Map();
 let markOn = true;
+let crossed = new Set();   // word keys crossed out of this PDF's Words list
+let showCrossed = false;
 
 const sessionWords = []; // words looked up since this reader tab was opened
 async function loadWords() {
@@ -221,8 +224,10 @@ async function loadWords() {
   wordMap = await window.BPDWords.load();
   for (const w of sessionWords) window.BPDWords.add(wordMap, w);
 }
+let freshKey = ""; // the word you looked up last: highlighted in the list
 addEventListener("bpd:lookup", (e) => {
   sessionWords.push(e.detail);
+  freshKey = String(e.detail.word || "").toLowerCase();
   window.BPDWords.add(wordMap, e.detail);
   markAll();
   if (pageTexts.length) renderWordList();
@@ -246,7 +251,7 @@ function mark(layer) {
     let m, last = 0, frag = null;
     while ((m = re.exec(t))) {
       const e = window.BPDWords.match(wordMap, m[0]);
-      if (!e) continue;
+      if (!e || crossed.has(e.key)) continue;
       frag ||= document.createDocumentFragment();
       frag.append(t.slice(last, m.index));
       const s = document.createElement("span");
@@ -281,36 +286,65 @@ const revealed = new Set();
 function setRecall(on) {
   recall = on;
   revealed.clear();
-  $("recallToggle").checked = on;
-  $("showAll").hidden = !on;
+  const b = $("recallBtn");
+  b.setAttribute("aria-pressed", String(on));
+  b.title = on ? "Recall mode is on: meanings are hidden (click one to check it). Click to show all meanings."
+    : "Meanings are shown. Click to hide them and test yourself (Recall mode).";
   if (pageTexts.length) renderWordList();
 }
-$("recallToggle").onchange = (e) => { setRecall(e.target.checked); store.set({ recall: recall }); };
-$("showAll").onclick = () => { for (const w of found) revealed.add(w.key); renderWordList(); };
+$("recallBtn").onclick = () => { setRecall(!recall); store.set({ recall }); };
 store.get("recall").then((r) => setRecall(r.recall !== false)); // on unless turned off
+
+// Cross out a word: it leaves this PDF's list and isn't underlined here. Kept per PDF (record.crossed).
+function setCrossed(k, on) {
+  if (on) crossed.add(k); else crossed.delete(k);
+  if (record) { record.crossed = [...crossed]; flush(); }
+  markAll(); renderWordList();
+}
+
+// Order of the list: page order (where each word first appears), first page first or last page first.
+let desc = false;
+function setOrder(d) {
+  desc = d;
+  const b = $("wordOrder");
+  b.textContent = desc ? "Page ↓" : "Page ↑";
+  b.title = desc ? "Last page first. Click for first page first." : "First page first. Click for last page first.";
+  if (pageTexts.length) renderWordList();
+}
+$("wordOrder").onclick = () => { setOrder(!desc); store.set({ wordSort: desc ? "desc" : "asc" }); };
+store.get("wordSort").then((r) => setOrder(r.wordSort === "desc"));
 
 let found = [];
 function renderWordList() {
   const map = new Map();
   pageTexts.forEach((t, i) => window.BPDWords.scan(wordMap, t, i + 1, map));
-  found = window.BPDWords.sorted(map);
+  const all = [...map.values()].sort((a, b) => desc ? b.first - a.first : a.first - b.first);
+  found = all.filter((w) => !crossed.has(w.key));
+  const out = all.filter((w) => crossed.has(w.key));
   $("wordCount").textContent = found.length ? String(found.length) : "";
-  $("wordList").innerHTML = found.length ? found.map((w, i) => {
+  const outList = out.length ? `<li class="crossed-head"><button class="crossed-toggle" aria-expanded="${showCrossed}">${showCrossed ? "▾" : "▸"} Crossed out (${out.length})</button></li>` +
+    (showCrossed ? out.map((w) => `<li class="crossed"><span class="w">${escapeHtml(w.word)}</span><button class="undo" data-u="${escapeHtml(w.key)}" title="Put it back in the list">Put back</button></li>`).join("") : "") : "";
+  $("wordList").innerHTML = (found.length ? found.map((w, i) => {
     const pages = [...w.pages];
     const meaning = (w.meaning ? `<span class="m">${escapeHtml(w.meaning)}</span>` : "") + (w.def ? `<span class="d">${escapeHtml(w.def)}</span>` : "");
     const hide = recall && meaning && !revealed.has(w.key);
-    return `<li><button data-i="${i}">
+    return `<li${w.key === freshKey ? ` class="fresh"` : ""}><button class="x" data-x="${escapeHtml(w.key)}" title="Cross out: remove from this PDF's list" aria-label="Cross out ${escapeHtml(w.word)}">×</button><button data-i="${i}">
       <span class="w${w.saved ? " saved" : " now"}">${escapeHtml(w.word)}</span><span class="c">${w.count}×</span>
       ${hide ? "" : meaning}
       <span class="p">Page${pages.length > 1 ? "s" : ""} ${pages.slice(0, 8).join(", ")}${pages.length > 8 ? "…" : ""}</span>
     </button>${hide ? `<button class="reveal" data-k="${escapeHtml(w.key)}" title="Click to show the meaning" aria-label="Show the meaning of ${escapeHtml(w.word)}"><span class="blur" aria-hidden="true">${meaning}</span></button>` : ""}</li>`;
-  }).join("") : `<li class="empty">None of your saved words are in this PDF. Words you look up while reading will appear here too.</li>`;
+  }).join("") : `<li class="empty">${out.length ? "You've crossed out all your words in this PDF." : "None of your saved words are in this PDF. Words you look up while reading will appear here too."}</li>`) + outList;
 }
 const escapeHtml = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 // Click a word: jump to its next occurrence (clicking again moves on to the next page that has it).
 const nextHit = new Map();
 $("wordList").addEventListener("click", async (e) => {
+  const x = e.target.closest("button[data-x]");
+  if (x) { setCrossed(x.dataset.x, true); return; }
+  const u = e.target.closest("button[data-u]");
+  if (u) { setCrossed(u.dataset.u, false); return; }
+  if (e.target.closest(".crossed-toggle")) { showCrossed = !showCrossed; renderWordList(); return; }
   const r = e.target.closest("button[data-k]");
   if (r) { revealed.add(r.dataset.k); renderWordList(); return; }
   const b = e.target.closest("button[data-i]");

@@ -102,11 +102,12 @@
     save: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>`,
     copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`,
     search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>`,
+    gt: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h8M8 3v2M6 5c.5 3 2.5 6 5 7M10 5c-.5 3-2.5 6-6 8"/><path d="m12 21 4-9 4 9M13.5 18h5"/></svg>`,
     back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>`,
     close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
     clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`
   };
-  const TITLES = { speak: "Pronounce", save: "Save to My words", copy: "Copy English word", search: "Search on Google", close: "Close" };
+  const TITLES = { speak: "Pronounce", save: "Save to My words", copy: "Copy English word", search: "Search on Google", gt: "Open in Google Translate", close: "Close" };
   const POS = { noun: "n.", verb: "v.", adjective: "adj.", adverb: "adv.", pronoun: "pron.", preposition: "prep.",
     conjunction: "conj.", interjection: "interj.", abbreviation: "abbr.", article: "art.", exclamation: "excl.", other: "also" };
   const pos = (p) => POS[String(p || "").toLowerCase()] || p || "";
@@ -160,8 +161,12 @@
     if (act === "form") lookInside(b.dataset.w);
     if (act === "back") { const m = back.pop(); if (m) { cur = m; seq++; box.scrollTop = 0; paint(lastRect); } }
     if (act === "search") {
-      const q = cur.mode === "passage" ? cur.text.slice(0, 300) : cur.text + " meaning";
-      window.open("https://www.google.com/search?q=" + encodeURIComponent(q), "_blank", "noopener");
+      const q = cur.mode === "passage" ? cur.text.slice(0, 300) : cur.text + " Bangla meaning with mnemonic";
+      send({ type: "peek", url: "https://www.google.com/search?q=" + encodeURIComponent(q) });
+    }
+    if (act === "gt") {
+      const [sl, tl] = isBn(cur.text) ? ["bn", "en"] : ["en", "bn"];
+      send({ type: "peek", url: `https://translate.google.com/?sl=${sl}&tl=${tl}&op=translate&text=` + encodeURIComponent(cur.text.slice(0, 5000)) });
     }
     if (act === "speak") speak(isBn(cur.text) ? hero(cur) : cur.text, cur.on?.pron?.audio);
     if (act === "copy") navigator.clipboard.writeText(isBn(cur.text) ? hero(cur) : cur.text).then(() => { b.title = "Copied"; }, () => {});
@@ -281,7 +286,7 @@
 
   function renderWord(m) {
     const bnWord = isBn(m.text);
-    let h = `<div class="top">` + head(m.text, "", ["speak", "save", "copy", "search", "close"], m.saved);
+    let h = `<div class="top">` + head(m.text, "", ["speak", "save", "search", "copy", "close"], m.saved);
     const main = hero(m);
     if (!main) {
       if (m.pending) return h + `<div class="bn muted" style="font-size:18px">Looking up…</div></div>`;
@@ -314,7 +319,7 @@
   }
 
   function renderPassage(m) {
-    let h = `<div class="top">` + head("Translation", "", ["copy", "search", "close"]) + `<div class="orig">${esc(m.text)}</div>`;
+    let h = `<div class="top">` + head("Translation", "", ["gt", "copy", "close"]) + `<div class="orig">${esc(m.text)}</div>`;
     const t = hero(m);
     if (!t && m.pending) return h + `<div class="bn passage muted">Translating…</div></div>`;
     if (!t) return h + `<p class="muted">Couldn't translate this text${m.on?.error ? ` (${esc(m.on.error)})` : ""}. Translating passages needs an internet connection.</p></div>`;

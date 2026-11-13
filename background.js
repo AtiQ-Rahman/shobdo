@@ -144,7 +144,33 @@ async function speak(text, audio) {
   chrome.tts.speak(text, { lang: "en-US", rate: 0.9 });
 }
 
+// Google search / Translate open in one small window beside the page instead of a new tab.
+// (They can't be shown inside the meaning box: Google refuses to be embedded in other pages.)
+let peekWin = null;
+async function peek(url, fromWin) {
+  if (peekWin != null) {
+    try {
+      const w = await chrome.windows.get(peekWin, { populate: true });
+      await chrome.tabs.update(w.tabs[0].id, { url });
+      await chrome.windows.update(peekWin, { focused: true });
+      return;
+    } catch { peekWin = null; }
+  }
+  const W = 480, H = 720, opts = { url, type: "popup", width: W, height: H };
+  try {
+    const f = await chrome.windows.get(fromWin);
+    opts.left = Math.max(0, f.left + f.width - W - 16);
+    opts.top = f.top + 80;
+    opts.height = Math.min(H, Math.max(400, f.height - 100));
+  } catch {}
+  peekWin = (await chrome.windows.create(opts)).id;
+}
+chrome.windows.onRemoved.addListener((id) => { if (id === peekWin) peekWin = null; });
+
 chrome.runtime.onMessage.addListener((msg, sender, send) => {
+  if (msg?.type === "peek" && /^https:\/\/(www|translate)\.google\.com\//.test(msg.url || "")) {
+    peek(msg.url, sender.tab?.windowId);
+  }
   if (msg?.type === "speak") {
     speak(msg.text, msg.audio).finally(() => send(true));
     return true;

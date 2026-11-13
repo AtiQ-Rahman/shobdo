@@ -36,6 +36,7 @@
       ],
       "js": [
         "words.js",
+        "ai.js",
         "popup.js",
         "content.js",
         "site.js"
@@ -47,7 +48,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "viewer.html"
+        "viewer.html",
+        "icons/ai/*.png"
       ],
       "matches": [
         "<all_urls>"

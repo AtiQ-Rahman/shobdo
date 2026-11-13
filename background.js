@@ -1,6 +1,7 @@
 import { lookupEnglish, lookupBangla } from "./dict.js";
 import { savePage, openPage, pageId, normUrl } from "./pages.js";
 import { renameDoc } from "./shared.js";
+import "./ai.js";
 
 const VIEWER = chrome.runtime.getURL("viewer.html");
 const RULE_ID = 1;
@@ -153,7 +154,7 @@ async function peek(url, fromWin) {
       const w = await chrome.windows.get(peekWin, { populate: true });
       await chrome.tabs.update(w.tabs[0].id, { url });
       await chrome.windows.update(peekWin, { focused: true });
-      return;
+      return w.tabs[0].id;
     } catch { peekWin = null; }
   }
   const W = 480, H = 720, opts = { url, type: "popup", width: W, height: H };
@@ -163,14 +164,52 @@ async function peek(url, fromWin) {
     opts.top = f.top + 80;
     opts.height = Math.min(H, Math.max(400, f.height - 100));
   } catch {}
-  peekWin = (await chrome.windows.create(opts)).id;
+  // If the spot beside the page is off screen, let the browser place it.
+  const w = await chrome.windows.create(opts).catch(() => chrome.windows.create({ url, type: "popup", width: W, height: opts.height }));
+  peekWin = w.id;
+  return w.tabs?.[0]?.id;
 }
 chrome.windows.onRemoved.addListener((id) => { if (id === peekWin) peekWin = null; });
+
+// "Ask AI": open the chat site in the same side window with the question ready to send.
+async function askAi(id, text, fromWin) {
+  const ai = SHOBDO_AI.find((a) => a.id === id);
+  if (!ai || !text) return;
+  const prompt = SHOBDO_AI_PROMPT(text.slice(0, 4000));
+  const url = ai.q ? ai.url + "?" + ai.q + "=" + encodeURIComponent(prompt) : ai.url;
+  const tabId = await peek(url, fromWin);
+  if (ai.q || tabId == null) return;
+  // No address parameter: type the question into the message box once the page has loaded.
+  const host = new URL(ai.url).host;
+  const done = (tid, info, tab) => {
+    if (tid !== tabId || info.status !== "complete" || !tab.url?.includes(host)) return;
+    chrome.tabs.onUpdated.removeListener(done);
+    chrome.scripting.executeScript({ target: { tabId }, func: fillChat, args: [prompt] }).catch(() => {});
+  };
+  chrome.tabs.onUpdated.addListener(done);
+  setTimeout(() => chrome.tabs.onUpdated.removeListener(done), 60000);
+}
+// Runs inside the chat page: waits for its message box (chat apps draw it after load), then types the question.
+function fillChat(prompt) {
+  const t0 = Date.now();
+  const tick = () => {
+    const el = [...document.querySelectorAll("textarea, [contenteditable=true]")].find((e) => e.offsetParent && !e.disabled && !e.readOnly);
+    if (!el) { if (Date.now() - t0 < 20000) setTimeout(tick, 300); return; }
+    el.focus();
+    if ((el.value ?? el.textContent).trim()) return; // something's already there; leave it
+    if (el.tagName === "TEXTAREA") {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(el, prompt);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    } else document.execCommand("insertText", false, prompt);
+  };
+  tick();
+}
 
 chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg?.type === "peek" && /^https:\/\/(www|translate)\.google\.com\//.test(msg.url || "")) {
     peek(msg.url, sender.tab?.windowId);
   }
+  if (msg?.type === "askAi") askAi(msg.id, msg.text, sender.tab?.windowId);
   if (msg?.type === "speak") {
     speak(msg.text, msg.audio).finally(() => send(true));
     return true;

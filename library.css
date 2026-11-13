@@ -71,6 +71,9 @@ fieldset input { accent-color: var(--green); }
 #settings .panel h2 { margin-bottom: 0; }
 #settings .hint { display: block; font-size: 0.857rem; }
 #settings fieldset { margin: 0; }
+#settings .ai-list { display: grid; gap: 6px; }
+#settings .ai-name { display: inline-flex; align-items: center; gap: 8px; }
+#settings .ai-name img { width: 20px; height: 20px; border-radius: 4px; }
 .hlprev { padding: 0 4px; border-radius: 2px; background: rgb(255 208 0 / var(--a)); }
 .setrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .stepper { display: inline-flex; align-items: center; gap: 6px; }

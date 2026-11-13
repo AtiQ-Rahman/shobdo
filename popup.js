@@ -76,6 +76,17 @@
   .btn:hover { background: var(--tint); }
   .sbn { font-family: ${BN}; font-size: 1.143em; line-height: 1.65; margin-top: 8px; padding: 8px 10px; background: var(--tint); border-radius: 6px; }
   .muted { color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+  .chip { all: unset; cursor: pointer; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; border: 1px solid transparent; }
+  .chip:hover { background: var(--tint); border-color: var(--rule); }
+  .chip:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+  .chip img { width: 22px; height: 22px; border-radius: 5px; display: block; }
+  .chips .sep { width: 1px; height: 20px; background: var(--rule); margin: 0 4px; }
+  .openin { margin-top: 10px; }
+  .sec > .openin:first-child { margin-top: 0; }
+  .dock { position: sticky; bottom: 0; background: var(--surface); padding-top: 8px; padding-bottom: 10px; }
+  .openin .label { margin-bottom: 6px; }
+  .tip { font-size: 0.786em; color: var(--muted); margin-top: 6px; }
   .hlrow { display: flex; align-items: center; gap: 4px; padding-top: 8px; padding-bottom: 8px; }
   .hlrow .label { margin: 0 6px 0 0; }
   .hlrow button { all: unset; cursor: pointer; height: 26px; min-width: 26px; display: grid; place-items: center; border-radius: 999px; font-size: 0.929em; font-weight: 600; }
@@ -117,6 +128,12 @@
   const today = () => "day:" + new Date().toLocaleDateString("en-CA");
   const fmtMin = (ms) => { const m = Math.round(ms / 60000); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
 
+  // Which AI chat sites to offer (Settings → Ask AI).
+  let aiList = globalThis.SHOBDO_AI_DEFAULT || [];
+  chrome.storage.local.get("aiList").then((r) => { if (Array.isArray(r.aiList)) aiList = r.aiList; }, () => {});
+  chrome.storage.onChanged.addListener((c) => { if (c.aiList) aiList = c.aiList.newValue || globalThis.SHOBDO_AI_DEFAULT || []; });
+  const aiIcon = (id) => chrome.runtime.getURL(`icons/ai/${id}.png`);
+  const ais = () => (globalThis.SHOBDO_AI || []).filter((a) => aiList.includes(a.id));
   function ensure() {
     if (host && host.isConnected) return;
     host = document.createElement("bpd-bubble");
@@ -164,9 +181,18 @@
       const q = cur.mode === "passage" ? cur.text.slice(0, 300) : cur.text + " Bangla meaning with mnemonic";
       send({ type: "peek", url: "https://www.google.com/search?q=" + encodeURIComponent(q) });
     }
+    const target = b.dataset.of === "sentence" ? cur.sentence?.text : cur.text;
     if (act === "gt") {
-      const [sl, tl] = isBn(cur.text) ? ["bn", "en"] : ["en", "bn"];
-      send({ type: "peek", url: `https://translate.google.com/?sl=${sl}&tl=${tl}&op=translate&text=` + encodeURIComponent(cur.text.slice(0, 5000)) });
+      const [sl, tl] = isBn(target) ? ["bn", "en"] : ["en", "bn"];
+      send({ type: "peek", url: `https://translate.google.com/?sl=${sl}&tl=${tl}&op=translate&text=` + encodeURIComponent(target.slice(0, 5000)) });
+    }
+    if (act === "ai") {
+      send({ type: "askAi", id: b.dataset.id, text: target });
+      // A copy on the clipboard too, in case the chat site doesn't pick the question up.
+      const tip = b.closest(".openin")?.querySelector(".tip");
+      navigator.clipboard.writeText(SHOBDO_AI_PROMPT(target.slice(0, 4000))).then(() => {
+        if (tip) { tip.hidden = false; tip.textContent = `Opening ${b.dataset.name}… The question is copied too: if the chat box is empty, paste it with Ctrl+V.`; }
+      }, () => {});
     }
     if (act === "speak") speak(isBn(cur.text) ? hero(cur) : cur.text, cur.on?.pron?.audio);
     if (act === "copy") navigator.clipboard.writeText(isBn(cur.text) ? hero(cur) : cur.text).then(() => { b.title = "Copied"; }, () => {});
@@ -235,13 +261,21 @@
       <span class="tools">${tools.map((t) => `<button class="ib${t === "save" && saved ? " on" : ""}" data-act="${t}" title="${saved && t === "save" ? "Saved — click to remove" : TITLES[t]}">${ICON[t]}</button>`).join("")}</span></div>`;
   }
 
+  // "Open in" row: Google Translate, then the AI chat sites chosen in Settings.
+  function openIn(of, label) {
+    return `<div class="openin"><div class="label">${label}</div><div class="chips">` +
+      `<button class="chip" data-act="gt" data-of="${of}" title="${TITLES.gt}" aria-label="${TITLES.gt}"><img src="${aiIcon("gtranslate")}" alt=""></button>` +
+      (ais().length ? `<span class="sep"></span>` : "") +
+      ais().map((a) => `<button class="chip" data-act="ai" data-id="${a.id}" data-of="${of}" data-name="${esc(a.name)}" title="Ask ${esc(a.name)} to explain it" aria-label="Ask ${esc(a.name)}"><img src="${aiIcon(a.id)}" alt=""></button>`).join("") +
+      `</div><div class="tip" hidden></div></div>`;
+  }
   function sentenceBlock(s) {
     if (!s || !s.text || s.text.split(" ").length < 3) return "";
     const a = s.text.slice(0, s.start), w = s.text.slice(s.start, s.end), z = s.text.slice(s.end);
     return `<div class="sec"><div class="label">In this sentence</div>
       <div class="sent">${esc(a)}<mark>${esc(w)}</mark>${esc(z)}</div>
       <button class="btn" data-act="sentence">Translate sentence</button>
-      <div class="sbn" hidden></div></div>`;
+      <div class="sbn" hidden></div>${openIn("sentence", "This sentence in Google Translate or AI")}</div>`;
   }
 
   // In the PDF reader: highlight the double-clicked word straight from the box.
@@ -319,11 +353,12 @@
   }
 
   function renderPassage(m) {
-    let h = `<div class="top">` + head("Translation", "", ["gt", "copy", "close"]) + `<div class="orig">${esc(m.text)}</div>`;
+    let h = `<div class="top">` + head("Translation", "", ["copy", "close"]) + `<div class="orig">${esc(m.text)}</div>`;
     const t = hero(m);
-    if (!t && m.pending) return h + `<div class="bn passage muted">Translating…</div></div>`;
-    if (!t) return h + `<p class="muted">Couldn't translate this text${m.on?.error ? ` (${esc(m.on.error)})` : ""}. Translating passages needs an internet connection.</p></div>`;
-    return h + `<div class="bn passage${isBn(m.text) ? " en-hero" : ""}">${esc(t)}</div></div>`;
+    if (!t && m.pending) h += `<div class="bn passage muted">Translating…</div>`;
+    else if (!t) h += `<p class="muted">Couldn't translate this text${m.on?.error ? ` (${esc(m.on.error)})` : ""}. Translating passages needs an internet connection.</p>`;
+    else h += `<div class="bn passage${isBn(m.text) ? " en-hero" : ""}">${esc(t)}</div>`;
+    return h + `</div><div class="sec dock">${openIn("text", "Open in Google Translate or ask AI")}</div>`;
   }
 
   // ---------- open / update ----------

@@ -2,7 +2,7 @@
 
 Read English PDFs and webpages with Bangla help.
 
-![Shobdo: double-click a word, see its family, translate a sentence, open it in Google Translate](media/shobdo-demo.gif)
+![Shobdo: double-click a word, see its family, translate a sentence, open it in Google Translate or ask AI](media/shobdo-demo.gif)
 
 ▶ **[Watch the 2-minute demo](media/shobdo-demo.mp4)**
 
@@ -13,8 +13,11 @@ Read English PDFs and webpages with Bangla help.
   mnemonic, in a small window beside the page (not a new tab).
 - **Word family**: the meaning box lists the word's other parts of speech with their Bangla meaning
   (decide → *n.* decision, *adj.* decisive). Click one to look it up.
-- **Select text** and click **Translate** to translate a phrase or paragraph. The Google Translate button in that
-  box opens it in Google Translate, in the same small window.
+- **Select text** and click **Translate** to translate a phrase or paragraph. The icons under the translation open
+  it in Google Translate, or **ask an AI** (ChatGPT, Claude, Gemini, Grok, DeepSeek, Perplexity) to explain it in
+  simple Bangla, in the same small window, with the question already typed. The sentence in a word's meaning
+  box has the same icons. Pick which AIs show in Library → Settings → Ask AI. The question is also copied, so if
+  a chat site doesn't pick it up, paste it with Ctrl+V.
 - **Bangla words work too**: double-click a Bangla word to get its English meaning.
 - **Save words** with the bookmark button. You can see them in Library → My words and export them as CSV for Anki.
 - **Words you've looked up** get a dotted underline in PDFs.

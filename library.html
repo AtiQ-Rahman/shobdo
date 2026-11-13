@@ -141,6 +141,11 @@
         <label class="switch">Show the “my words” button on websites <input id="s-siteBadge" type="checkbox"></label>
       </div>
       <div class="panel">
+        <h2>Ask AI</h2>
+        <p class="muted hint">When you translate a sentence or a passage, the meaning box offers these AI chats to explain it. Pick the ones you use. They open in a small window beside the page, with the question already typed (you need to be signed in to that site).</p>
+        <div id="s-ai" class="ai-list"></div>
+      </div>
+      <div class="panel">
         <h2>Practice</h2>
         <label class="switch"><span>Recall mode <span class="muted hint">Hide meanings in word lists until you click them, so you test yourself first.</span></span> <input id="s-recall" type="checkbox"></label>
       </div>
@@ -168,6 +173,7 @@
     </section>
   </main>
   <script src="words.js"></script>
+  <script src="ai.js"></script>
   <script type="module" src="library.js"></script>
 </body>
 </html>

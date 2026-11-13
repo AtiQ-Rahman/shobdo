@@ -538,7 +538,7 @@ document.addEventListener("keydown", (e) => {
 
 // ---------- Settings ----------
 // Every setting lives in chrome.storage.local; the reader, websites and popup all listen for changes.
-const SETTINGS = ["uiFs", "autoOpen", "markSeen", "siteBadge", "recall", "hlAlpha", "sideFs", "sideW", "wordsFs", "rvPrefs"];
+const SETTINGS = ["aiList", "uiFs", "autoOpen", "markSeen", "siteBadge", "recall", "hlAlpha", "sideFs", "sideW", "wordsFs", "rvPrefs"];
 const FS_MIN = 12, FS_MAX = 24;
 let sideFs = 14;
 function renderSettings(all) {
@@ -554,12 +554,16 @@ function renderSettings(all) {
   $("s-wReset").disabled = !all.sideW;
   wordsFs = all.wordsFs || 14;
   applyWordsFs();
+  const ai = Array.isArray(all.aiList) ? all.aiList : SHOBDO_AI_DEFAULT;
+  for (const c of document.querySelectorAll("#s-ai input")) c.checked = ai.includes(c.value);
   if (all.rvPrefs) { rvPrefs = { ...rvPrefs, ...all.rvPrefs }; if (!round) renderReviseSetup(); }
 }
 $("s-uiFs").insertAdjacentHTML("beforeend", TEXT_SIZES.map(([px, name]) =>
   `<label><input type="radio" name="uiFs" value="${px}"> <span style="font-size:${px}px">${name} <span class="bn">অআ</span></span></label>`).join(""));
 $("s-uiFs").onchange = (e) => store.set({ uiFs: +e.target.value });
 for (const k of ["autoOpen", "markSeen", "siteBadge", "recall"]) $("s-" + k).onchange = (e) => store.set({ [k]: e.target.checked });
+$("s-ai").innerHTML = SHOBDO_AI.map((a) => `<label class="switch"><span class="ai-name"><img src="icons/ai/${a.id}.png" alt=""> ${esc(a.name)}</span> <input type="checkbox" value="${a.id}"></label>`).join("");
+$("s-ai").onchange = () => store.set({ aiList: [...document.querySelectorAll("#s-ai input:checked")].map((c) => c.value) });
 $("s-hlAlpha").onchange = (e) => store.set({ hlAlpha: +e.target.value });
 $("s-fsDown").onclick = () => store.set({ sideFs: Math.max(FS_MIN, sideFs - 1) });
 $("s-fsUp").onclick = () => store.set({ sideFs: Math.min(FS_MAX, sideFs + 1) });

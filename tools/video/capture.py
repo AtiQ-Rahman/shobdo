@@ -130,6 +130,26 @@ def main():
         side_window(os.path.join(SHOTS, "web_passage.png"), os.path.join(SHOTS, "_gt_window.png"), os.path.join(SHOTS, "web_gt.png"), "Google Translate")
         print("shot web_gt", flush=True)
         gw.close()
+        # ---------- 2b. ask an AI chat (Gemini) about the sentence ----------
+        meta["ai_btn"] = r = in_bubble(pg, **{"data-act": "ai", "data-id": "gemini"})
+        pg.mouse.move(*center(r)); pg.wait_for_timeout(300)
+        shot(pg, "web_ai_hover")
+        pg.mouse.click(*center(r)); pg.wait_for_timeout(600)
+        shot(pg, "web_ai_tip")  # the box says the question is on the clipboard too
+        aw = ctx.new_page(); aw.set_viewport_size({"width": 480, "height": 690})
+        aw.goto("https://gemini.google.com/app")
+        try: aw.wait_for_load_state("networkidle", timeout=20000)
+        except Exception: pass
+        # Same question Shobdo sends, typed into the chat box the way background.js does it.
+        prompt = sw.evaluate("(t) => SHOBDO_AI_PROMPT(t)", s)
+        aw.wait_for_selector("textarea, [contenteditable=true]", timeout=20000)
+        aw.evaluate("""(p) => { const e = [...document.querySelectorAll('textarea, [contenteditable=true]')].find((e) => e.offsetParent);
+          e.focus(); if (e.tagName === 'TEXTAREA') { e.value = p; e.dispatchEvent(new Event('input', { bubbles: true })); } else document.execCommand('insertText', false, p); }""", prompt)
+        aw.wait_for_timeout(1500)
+        aw.screenshot(path=os.path.join(SHOTS, "_ai_window.png"))
+        side_window(os.path.join(SHOTS, "web_ai_tip.png"), os.path.join(SHOTS, "_ai_window.png"), os.path.join(SHOTS, "web_ai.png"), "Gemini")
+        print("shot web_ai", flush=True)
+        aw.close()
 
         # ---------- seed: saved words, reading time ----------
         lib = ctx.new_page(); lib.goto(base + "library.html"); lib.wait_for_timeout(500)

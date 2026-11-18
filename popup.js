@@ -48,6 +48,10 @@
   .lvl i b.f { background: var(--green); }
   .ipa { color: var(--ink); overflow-wrap: anywhere; }
   .basef b { color: var(--ink); font-weight: 600; }
+  .v5 { all: unset; cursor: pointer; font-weight: 600; color: var(--ink); padding: 0 3px;
+    background: linear-gradient(transparent 52%, rgba(255, 212, 59, .7) 52%, rgba(255, 212, 59, .7) 92%, transparent 92%); }
+  .v5:hover { color: var(--green); }
+  .v5:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
   .basef span { font-family: ${BN}; }
   .alts { margin: 8px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
   .pos { font-style: italic; color: var(--muted); font-family: Georgia, serif; }
@@ -175,6 +179,7 @@
     if (!b || !cur) return;
     const act = b.dataset.act;
     if (act === "close") hide();
+    if (act === "v500") { send({ type: "openVocab", n: +b.dataset.n }); hide(); }
     if (act === "form") lookInside(b.dataset.w);
     if (act === "back") { const m = back.pop(); if (m) { cur = m; seq++; box.scrollTop = 0; paint(lastRect); } }
     if (act === "search") {
@@ -318,6 +323,16 @@
     return h + `</div>`;
   }
 
+  // Is this word (or its base form) one of the Vocab 500 words? Its number, else 0.
+  function vocabNo(m) {
+    const list = globalThis.SHOBDO_V500 || [];
+    for (const w of [m.off?.lemma, m.text, m.off?.base?.word]) {
+      const i = list.indexOf(String(w || "").toLowerCase().trim());
+      if (i >= 0) return i + 1;
+    }
+    return 0;
+  }
+
   function renderWord(m) {
     const bnWord = isBn(m.text);
     let h = `<div class="top">` + head(m.text, "", ["speak", "save", "search", "copy", "close"], m.saved);
@@ -332,6 +347,8 @@
     if (m.on?.tr?.translit && !bnWord) meta.push(`<span>${esc(m.on.tr.translit)}</span>`);
     if (m.off?.level) meta.push(`<span class="lvl" title="How common this word is in everyday English"><i>${[1, 2, 3, 4, 5].map((i) => `<b class="${i <= m.off.level.n ? "f" : ""}"></b>`).join("")}</i>${esc(m.off.level.label)}</span>`);
     if (m.off?.base) meta.push(`<span class="basef">Base form: <b>${esc(m.off.base.word)}</b>${m.off.base.bn ? ` <span>${esc(m.off.base.bn)}</span>` : ""}</span>`);
+    const v5 = vocabNo(m);
+    if (v5) meta.push(`<button class="v5" data-act="v500" data-n="${v5}" title="One of the Vocab 500 words: open its card (memory trick, close words, quiz)">Vocab 500 · #${v5}</button>`);
     if (meta.length) h += `<div class="meta">${meta.join("")}</div>`;
 
     // Alternatives: online dictionary groups by part of speech, then offline terms not shown yet.

@@ -37,6 +37,7 @@
       "js": [
         "words.js",
         "ai.js",
+        "vocab/list.js",
         "popup.js",
         "content.js",
         "site.js"

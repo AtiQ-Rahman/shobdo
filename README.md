@@ -30,6 +30,10 @@ Read English PDFs and webpages with Bangla help.
 - **Revise by page**: Revise → *From one page or PDF* practises only the words from that page or PDF (the reader's
   Words tab and Library → Saved pages have a *Revise* button too). *The sentence with the word missing* turns the
   sentence you met the word in into a fill-in-the-blank card.
+- **Vocab 500** (Library → Vocab 500): 500 exam words with Bangla meaning, a Bangla memory trick, examples and close
+  words side by side (allay / alleviate…). *Today* brings a few new words a day plus spaced reviews, and Day 7 of each
+  week revises that week; *Learn* and *Quiz* by week and day. When you double-click one of these words anywhere, the
+  meaning box shows *Vocab 500 · #n*, which opens its card.
 - **In the PDF reader and saved pages:** highlight in 4 colors, add notes to highlights, write notes about the whole PDF,
   and export your notes as Markdown (side panel → Export).
 - **Your words, everywhere**: the PDF reader's **Words** tab lists your saved and looked-up words that appear
@@ -67,6 +71,8 @@ Your words, highlights and notes are kept. Still, it's good to take a backup fir
 - Saving a page runs Readability (the code behind Firefox's Reader View) on it, then keeps only plain text tags:
   scripts, styles, forms, frames and event handlers are removed before it is stored and again before it is shown.
 - Everything you save (words, saved pages, highlights, notes, reading time, history) stays in `chrome.storage.local` on your computer.
+- `vocab/` is a copy of the separate Vocab 500 app (`../vocab-500`, made by its `tools/export_to_shobdo.sh`; edit it
+  there, not here). It runs in the Library tab as its own page and keeps its progress in the extension's `localStorage`.
 - Highlights and notes belong to the PDF itself (matched by its fingerprint), not to its URL. So when you
   open the same file again, even from somewhere else, your highlights and notes come back.
 

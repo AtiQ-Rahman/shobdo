@@ -2,8 +2,8 @@
 .top { background: var(--surface); border-top: 3px solid var(--green); border-bottom: 1px solid var(--line); }
 .top .wrap { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; padding-top: 14px; }
 h1 { font-size: 1.429rem; margin: 0 0 12px; }
-nav { display: flex; gap: 4px; }
-nav a { padding: 8px 12px 10px; color: var(--muted); text-decoration: none; font-weight: 600; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+nav { display: flex; gap: 2px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+nav a { white-space: nowrap; padding: 8px 9px 10px; color: var(--muted); text-decoration: none; font-weight: 600; border-bottom: 3px solid transparent; margin-bottom: -1px; }
 nav a[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--green); }
 main.wrap { padding-top: 20px; padding-bottom: 40px; }
 h2 { font-size: 1rem; margin: 24px 0 8px; color: var(--muted); }
@@ -146,3 +146,7 @@ kbd { font: 0.786rem/1 system-ui, sans-serif; border: 1px solid currentColor; bo
 .blank { display: inline-block; min-width: calc(var(--n, 5) * 0.55em); border-bottom: 2px solid var(--green); color: var(--green); font-weight: 700; text-align: left; line-height: 1.2; }
 .rv-q .hint { font-size: calc(0.929rem * var(--wf, 1)); }
 .rv-q .hintv { color: var(--green); font-size: calc(1.143rem * var(--wf, 1)); }
+
+/* Vocab 500 fills the rest of the window under the Library header */
+#vocab { margin: -20px -16px -40px; }
+#vocabFrame { display: block; width: 100%; height: calc(100vh - 70px); border: 0; background: var(--bg); } /* exact height set in library.js */

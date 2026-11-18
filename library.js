@@ -6,9 +6,20 @@ const $ = (id) => document.getElementById(id);
 
 // ---------- tabs ----------
 function showTab() {
-  const id = (location.hash || "#pdfs").slice(1);
+  // "#vocab/w/37" opens the Vocab 500 tab on word 37 (from the meaning popup); "#vocab/start" starts today's study
+  const [id, ...rest] = (location.hash || "#pdfs").slice(1).split("/");
+  if (id === "vocab") openVocab(rest.join("/"));
   for (const s of document.querySelectorAll("main > section")) s.hidden = s.id !== id;
   for (const a of document.querySelectorAll("nav a")) a.setAttribute("aria-selected", String(a.dataset.tab === id));
+}
+// Vocab 500 is its own small app (vocab/, copied from the vocab-500 project); it keeps its progress in localStorage.
+function fitVocab() { const f = $("vocabFrame"); f.style.height = innerHeight - document.querySelector("header.top").offsetHeight + "px"; }
+addEventListener("resize", fitVocab);
+function openVocab(path) {
+  const f = $("vocabFrame"), url = "vocab/index.html?embed#/" + path;
+  requestAnimationFrame(fitVocab);
+  if (!f.src || path) f.src = url;
+  if (path) history.replaceState(null, "", "#vocab");
 }
 addEventListener("hashchange", showTab);
 showTab();

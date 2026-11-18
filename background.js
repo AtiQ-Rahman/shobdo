@@ -240,6 +240,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     return true;
   }
   if (msg?.type === "openPage" && msg.id) openPage(msg.id);
+  if (msg?.type === "openVocab" && msg.n >= 1 && msg.n <= 500) chrome.tabs.create({ url: chrome.runtime.getURL(`library.html#vocab/w/${msg.n | 0}`) });
   if (msg?.type === "renamePage" && msg.id) { renameDoc("page:" + msg.id, msg.name).then(() => send(true)); return true; }
   if (msg?.type === "openViewer") {
     chrome.tabs.create({ url: VIEWER + (msg.file ? "?file=" + msg.file : "") });
